@@ -135,9 +135,9 @@
 			<key>one</key>
 			<string>Релей</string>
 			<key>few</key>
-			<string>Relays</string>
+			<string>Релея</string>
 			<key>many</key>
-			<string>Relays</string>
+			<string>Релеев</string>
 			<key>other</key>
 			<string>Релеи</string>
 		</dict>
