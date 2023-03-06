@@ -35,9 +35,9 @@
 			<key>one</key>
 			<string>Подписчик</string>
 			<key>few</key>
-			<string>Followers</string>
+			<string>Подписчика</string>
 			<key>many</key>
-			<string>Followers</string>
+			<string>Подписчиков</string>
 			<key>other</key>
 			<string>Подписчики</string>
 		</dict>
