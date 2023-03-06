@@ -139,7 +139,7 @@
 			<key>many</key>
 			<string>Релеев</string>
 			<key>other</key>
-			<string>Релеи</string>
+			<string>Релей</string>
 		</dict>
 	</dict>
 	<key>replying_to_two_and_others</key>
