@@ -11,10 +11,10 @@ struct MutelistView: View {
     let damus_state: DamusState
     @State var show_add_muteitem: Bool = false
 
+    @State var words: [MuteItem] = []
     @State var users: [MuteItem] = []
     @State var hashtags: [MuteItem] = []
     @State var threads: [MuteItem] = []
-    @State var words: [MuteItem] = []
     
     @State var new_text: String = ""
 
@@ -39,10 +39,11 @@ struct MutelistView: View {
     }
 
     func updateMuteItems() {
-        users = Array(damus_state.mutelist_manager.users)
         hashtags = Array(damus_state.mutelist_manager.hashtags)
         threads = Array(damus_state.mutelist_manager.threads)
         words = Array(damus_state.mutelist_manager.words)
+        users = Array(damus_state.mutelist_manager.users)
+
     }
 
     var body: some View {
