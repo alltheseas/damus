@@ -1082,7 +1082,7 @@ func timeline_name(_ timeline: Timeline?) -> String {
     case .notifications:
         return NSLocalizedString("Notifications", comment: "Toolbar label for Notifications view.")
     case .search:
-        return NSLocalizedString("Universe 🛸", comment: "Toolbar label for the universal view where notes from all connected relay servers appear.")
+        return NSLocalizedString("Discovery", comment: "Toolbar label for the discovery view where notes from all connected relay servers appear, and where user can use the search bar.")
     case .dms:
         return NSLocalizedString("DMs", comment: "Toolbar label for DMs view, where DM is the English abbreviation for Direct Message.")
     }
