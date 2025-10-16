@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 import LinkPresentation
 import NaturalLanguage
 import MarkdownUI
@@ -226,6 +227,19 @@ struct NoteContentView: View {
                     previewView(links: artifacts.links).padding(.horizontal)
                 } else {
                     previewView(links: artifacts.links)
+                }
+            }
+
+            if !artifacts.relays.isEmpty {
+                ForEach(artifacts.relays, id: \.self) { relay in
+                    if with_padding {
+                        RelayLinkPreviewCard(state: damus_state, relay: relay)
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                    } else {
+                        RelayLinkPreviewCard(state: damus_state, relay: relay)
+                            .padding(.top, 8)
+                    }
                 }
             }
 
@@ -494,6 +508,124 @@ struct BlurOverlayView: View {
     
     enum ParentViewType {
         case noteContentView, longFormView
+    }
+}
+
+@MainActor
+final class RelayLinkCardModel: ObservableObject {
+    @Published private(set) var metadata: RelayMetadata?
+
+    private let state: DamusState
+    let relay: RelayURL
+
+    private var isLoading = false
+
+    init(state: DamusState, relay: RelayURL) {
+        self.state = state
+        self.relay = relay
+
+        if let cached = state.relay_model_cache.model(with_relay_id: relay)?.metadata {
+            metadata = cached
+        } else {
+            Task { await loadMetadata() }
+        }
+    }
+
+    func loadMetadata() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        if let cached = state.relay_model_cache.model(with_relay_id: relay)?.metadata {
+            metadata = cached
+            return
+        }
+
+        do {
+            if let fetched = try await fetch_relay_metadata(relay_id: relay) {
+                metadata = fetched
+                if state.relay_model_cache.model(with_relay_id: relay) == nil {
+                    state.relay_model_cache.insert(model: RelayModel(relay, metadata: fetched))
+                }
+            }
+        } catch {
+            // Metadata is optional; ignore failures.
+        }
+    }
+}
+
+struct RelayLinkPreviewCard: View {
+    let state: DamusState
+    let relay: RelayURL
+
+    @StateObject private var model: RelayLinkCardModel
+
+    init(state: DamusState, relay: RelayURL) {
+        self.state = state
+        self.relay = relay
+        _model = StateObject(wrappedValue: RelayLinkCardModel(state: state, relay: relay))
+    }
+
+    private var displayName: String {
+        if let raw = model.metadata?.name?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+            return raw
+        }
+        return relay.url.host() ?? relay.absoluteString
+    }
+
+    private var descriptionText: String {
+        if let raw = model.metadata?.description?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+            return raw
+        }
+        return relay.absoluteString
+    }
+
+    private var icon: String? {
+        model.metadata?.icon
+    }
+
+    var body: some View {
+        Button(action: openRelay) {
+            HStack(alignment: .top, spacing: 12) {
+                RelayPicView(
+                    relay: relay,
+                    icon: icon,
+                    size: 48,
+                    highlight: .none,
+                    disable_animation: state.settings.disable_animation
+                )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(displayName)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+
+                    Text(descriptionText)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(.secondarySystemBackground)))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func openRelay() {
+        state.nav.push(route: Route.RelayDetail(relay: relay, metadata: model.metadata))
     }
 }
 
