@@ -35,7 +35,7 @@ struct EventTop: View {
             ProfileName(is_anon: is_anon)
             TimeDot()
             RelativeTime(time: state.events.get_cache_data(event.id).relative_time, size: size, font_size: state.settings.font_size)
-            if let clientTag = event.clientTag {
+            if state.settings.enable_client_tag_labels, let clientTag = event.clientTag {
                 TimeDot()
                 ClientTagLabel(clientTag: clientTag, size: size, font_size: state.settings.font_size)
             }

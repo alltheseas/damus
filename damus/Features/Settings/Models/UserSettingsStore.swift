@@ -368,6 +368,10 @@ class UserSettingsStore: ObservableObject {
     @Setting(key: "labs_experiment_favorites", default_value: false)
     var enable_favourites_feature: Bool
     
+    /// Whether the app should show nostr client tags under posts (Damus Labs)
+    @Setting(key: "labs_experiment_client_tags", default_value: false)
+    var enable_client_tag_labels: Bool
+    
     // MARK: Internal, hidden settings
     
     // TODO: Get rid of this once we have NostrDB query capabilities integrated
