@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Network
 
 struct PostingTimelineView: View {
     
@@ -267,9 +268,21 @@ private final class VineFeedModel: ObservableObject {
     private var streamTask: Task<Void, Never>?
     private var lastSeenTimestamp: UInt32?
     private var managedRelayConnection = false
+    private let pathMonitor = NWPathMonitor()
+    private let pathQueue = DispatchQueue(label: "io.damus.vines.network")
+    @MainActor private var pathIsExpensive = false
+    @MainActor private var pathIsConstrained = false
+    @MainActor private var prefetchingURLs: Set<URL> = []
     
     init(damus_state: DamusState) {
         self.damus_state = damus_state
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            Task { @MainActor in
+                self?.pathIsExpensive = path.isExpensive
+                self?.pathIsConstrained = path.isConstrained
+            }
+        }
+        pathMonitor.start(queue: pathQueue)
     }
     
     func subscribe() {
@@ -311,14 +324,17 @@ private final class VineFeedModel: ObservableObject {
         }
     }
     
+    @MainActor
     func noteAppeared(at index: Int) {
+        guard shouldPrefetchVideos else { return }
         let targets = [index, index + 1]
+        let allowCellular = damus_state.settings.prefetch_vines_on_cellular
         Task.detached(priority: .background) { [weak self] in
             guard let self else { return }
             for target in targets {
                 guard self.vines.indices.contains(target),
                       let url = self.vines[target].playbackURL else { continue }
-                _ = try? await URLSession.shared.data(from: url)
+                await self.prefetch(url: url, allowCellular: allowCellular)
             }
         }
     }
@@ -411,6 +427,49 @@ private final class VineFeedModel: ObservableObject {
         guard shouldDisconnect else { return }
         await damus_state.nostrNetwork.disconnectRelay(.vineRelay)
         await MainActor.run { self.managedRelayConnection = false }
+    }
+    
+    @MainActor
+    private var shouldPrefetchVideos: Bool {
+        if pathIsConstrained {
+            return false
+        }
+        if pathIsExpensive && !damus_state.settings.prefetch_vines_on_cellular {
+            return false
+        }
+        return true
+    }
+    
+    private func prefetch(url: URL, allowCellular: Bool) async {
+        guard await markPrefetching(url) else { return }
+        defer { await unmarkPrefetching(url) }
+        var request = URLRequest(url: url)
+        request.allowsExpensiveNetworkAccess = allowCellular
+        request.allowsConstrainedNetworkAccess = allowCellular
+        request.timeoutInterval = 15
+        do {
+            _ = try await URLSession.shared.data(for: request)
+        } catch {
+            Log.debug("Vine prefetch failed for %s: %s", for: .timeline, url.absoluteString, error.localizedDescription)
+        }
+    }
+    
+    @MainActor
+    private func markPrefetching(_ url: URL) -> Bool {
+        if prefetchingURLs.contains(url) {
+            return false
+        }
+        prefetchingURLs.insert(url)
+        return true
+    }
+    
+    @MainActor
+    private func unmarkPrefetching(_ url: URL) {
+        prefetchingURLs.remove(url)
+    }
+    
+    deinit {
+        pathMonitor.cancel()
     }
 }
 
