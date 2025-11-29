@@ -139,6 +139,17 @@ class NostrNetworkManager {
             .filter { !filters.is_filtered(timeline: .search, relay_id: $0) }
     }
     
+    /// Ensures the relay pool is connected to a specific relay, adding it if necessary. Useful for feature-specific relays (e.g., Vine POC).
+    func ensureRelayConnected(_ relayURL: RelayURL) async {
+        if await pool.get_relay(relayURL) != nil {
+            return
+        }
+        
+        let descriptor = RelayPool.RelayDescriptor(url: relayURL, info: .readWrite)
+        try? await pool.add_relay(descriptor)
+        await pool.connect(to: [relayURL])
+    }
+    
     // MARK: NWC
     // TODO: Move this to NWCManager
     
