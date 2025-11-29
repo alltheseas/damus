@@ -219,7 +219,7 @@ struct VineTimelineView: View {
             }
         }
         .onAppear { model.subscribe() }
-        .onDisappear { model.stop() }
+        .onDisappear { model.stop(disconnect: true) }
         .onReceive(damus_state.settings.objectWillChange) { _ in
             model.handleSettingsChange()
         }
@@ -251,6 +251,7 @@ private final class VineFeedModel: ObservableObject {
     private var streamTask: Task<Void, Never>?
     private var lastSeenTimestamp: UInt32?
     private let videoCache = VideoCache.standard
+    private var managedRelayConnection = false
     
     init(damus_state: DamusState) {
         self.damus_state = damus_state
@@ -261,9 +262,14 @@ private final class VineFeedModel: ObservableObject {
         streamTask = Task { await self.stream() }
     }
     
-    func stop() {
+    func stop(disconnect: Bool = false) {
         streamTask?.cancel()
         streamTask = nil
+        if disconnect {
+            Task {
+                await self.disconnectManagedRelayIfNeeded()
+            }
+        }
     }
     
     func refresh() async {
@@ -276,7 +282,7 @@ private final class VineFeedModel: ObservableObject {
     
     func handleSettingsChange() {
         guard damus_state.settings.enable_vine_relay else {
-            stop()
+            stop(disconnect: true)
             Task { @MainActor in
                 relayMessage = NSLocalizedString("Enable the Divine relay in Settings ▸ Relays to see Vine videos.", comment: "Message shown when the Vine relay is disabled.")
                 vines.removeAll()
@@ -316,7 +322,15 @@ private final class VineFeedModel: ObservableObject {
             return
         }
         
+        let alreadyConnected = await MainActor.run {
+            damus_state.nostrNetwork.getRelay(.vineRelay) != nil
+        }
         await damus_state.nostrNetwork.ensureRelayConnected(.vineRelay)
+        if !alreadyConnected {
+            await MainActor.run {
+                self.managedRelayConnection = true
+            }
+        }
         
         await MainActor.run {
             relayMessage = nil
@@ -380,6 +394,13 @@ private final class VineFeedModel: ObservableObject {
             return (inner, event)
         }
         return (event, nil)
+    }
+    
+    private func disconnectManagedRelayIfNeeded() async {
+        let shouldDisconnect = await MainActor.run { self.managedRelayConnection }
+        guard shouldDisconnect else { return }
+        await damus_state.nostrNetwork.disconnectRelay(.vineRelay)
+        await MainActor.run { self.managedRelayConnection = false }
     }
 }
 
