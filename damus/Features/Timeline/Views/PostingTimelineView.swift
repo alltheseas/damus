@@ -340,9 +340,10 @@ private final class VineFeedModel: ObservableObject {
     }
     
     private func handle(event: NostrEvent) async {
-        guard let video = VineVideo(event: event) else { return }
+        let canonical = canonicalEvent(for: event)
+        guard let video = VineVideo(event: canonical.base, repostSource: canonical.repost) else { return }
         let shouldInclude = await MainActor.run {
-            should_show_event(state: damus_state, ev: event)
+            should_show_event(state: damus_state, ev: canonical.base)
         }
         guard shouldInclude else { return }
         
@@ -358,6 +359,18 @@ private final class VineFeedModel: ObservableObject {
             vines.sort { $0.createdAt > $1.createdAt }
             lastSeenTimestamp = max(lastSeenTimestamp ?? 0, video.createdAt)
         }
+    }
+    
+    private func canonicalEvent(for event: NostrEvent) -> (base: NostrEvent, repost: NostrEvent?) {
+        guard event.known_kind == .boost else {
+            return (event, nil)
+        }
+        
+        if let inner = event.get_inner_event(cache: damus_state.events),
+           inner.known_kind == .vine_short {
+            return (inner, event)
+        }
+        return (event, nil)
     }
 }
 
@@ -469,11 +482,13 @@ struct VineVideo: Identifiable, Equatable {
     let commentCount: Int?
     let repostCount: Int?
     let publishedAt: String?
+    let repostedBy: String?
+    let repostedAt: UInt32?
     
     var id: String { event.id.hex() }
     var originDescription: String? { origin?.displayText }
     
-    init?(event: NostrEvent) {
+    init?(event: NostrEvent, repostSource: NostrEvent? = nil) {
         guard event.known_kind == .vine_short else { return nil }
         self.event = event
         
@@ -494,6 +509,18 @@ struct VineVideo: Identifiable, Equatable {
         self.commentCount = VineVideo.intTagValue("comments", in: event)
         self.repostCount = VineVideo.intTagValue("reposts", in: event)
         self.publishedAt = VineVideo.tagValue("published_at", in: event)
+        if let repost = repostSource {
+            let npub = repost.pubkey.npub
+            if npub.count > 12 {
+                self.repostedBy = "\(npub.prefix(8))…\(npub.suffix(4))"
+            } else {
+                self.repostedBy = npub
+            }
+            self.repostedAt = repost.created_at
+        } else {
+            self.repostedBy = nil
+            self.repostedAt = nil
+        }
         
         self.dedupeKey = VineVideo.tagValue("d", in: event) ?? event.id.hex()
         self.createdAt = event.created_at
