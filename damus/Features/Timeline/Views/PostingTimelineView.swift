@@ -400,11 +400,17 @@ private final class VineFeedModel: ObservableObject {
     
     private func handle(event: NostrEvent) async {
         let canonical = canonicalEvent(for: event)
-        guard let video = VineVideo(event: canonical.base, repostSource: canonical.repost) else { return }
+        guard let video = VineVideo(event: canonical.base, repostSource: canonical.repost) else {
+            Log.debug("Skipping Vine event %s (failed to parse)", for: .timeline, canonical.base.id.hex())
+            return
+        }
         let shouldInclude = await MainActor.run {
             should_show_event(state: damus_state, ev: canonical.base)
         }
-        guard shouldInclude else { return }
+        guard shouldInclude else {
+            Log.debug("Filtered Vine event %s via should_show_event", for: .timeline, canonical.base.id.hex())
+            return
+        }
         
         await MainActor.run {
             if let index = vines.firstIndex(where: { $0.dedupeKey == video.dedupeKey }) {
@@ -440,6 +446,7 @@ private final class VineFeedModel: ObservableObject {
     }
     
     private func loadInitialPage() async {
+        let start = CFAbsoluteTimeGetCurrent()
         await MainActor.run {
             isLoading = true
             vines.removeAll()
@@ -448,22 +455,26 @@ private final class VineFeedModel: ObservableObject {
         await MainActor.run {
             applyPage(events, reset: true)
             isLoading = false
+            Log.info("Vines initial page loaded %d events in %.2fs", for: .timeline, events.count, CFAbsoluteTimeGetCurrent() - start)
         }
     }
     
     private func loadOlderPage() async {
         let before = await MainActor.run { self.oldestTimestamp }
         guard let before else { return }
+        let start = CFAbsoluteTimeGetCurrent()
         let events = await fetchPage(before: before > 0 ? before - 1 : 0)
         if events.isEmpty {
             await MainActor.run {
                 self.hasMoreOlder = false
                 self.isLoadingOlder = false
+                Log.debug("Vines older page empty at timestamp %u", for: .timeline, before)
             }
             return
         }
         await MainActor.run {
             applyPage(events, reset: false)
+            Log.info("Vines older page loaded %d events in %.2fs", for: .timeline, events.count, CFAbsoluteTimeGetCurrent() - start)
         }
     }
     
@@ -490,6 +501,7 @@ private final class VineFeedModel: ObservableObject {
             if newVideos.isEmpty {
                 hasMoreOlder = false
             }
+            Log.debug("Vines older page appended %d new events (filtered %d duplicates)", for: .timeline, newVideos.count, videos.count - newVideos.count)
         }
         if let newest = vines.first?.createdAt {
             lastSeenTimestamp = max(lastSeenTimestamp ?? 0, newest)
