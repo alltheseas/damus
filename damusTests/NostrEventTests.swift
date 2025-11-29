@@ -81,6 +81,23 @@ final class VineVideoTests: XCTestCase {
         XCTAssertEqual(video?.thumbnailURL?.absoluteString, "https://example.com/thumb.jpg")
     }
     
+    func testClassicFixtureParsesStats() {
+        let video = VineVideo(event: makeVineEvent(tags: VineFixtures.classicImport))
+        XCTAssertEqual(video?.playbackURL?.absoluteString, "https://cdn.divine.video/eab385ddbb6e06b6b5d93de39e5d92b85c33fe0d107eef3262ebe1d259ebc78f.mp4")
+        XCTAssertEqual(video?.thumbnailURL?.absoluteString, "https://stream.divine.video/2e3125fb-226e-4668-94b1-0a9a11daf348/thumbnail.jpg")
+        XCTAssertEqual(video?.loopCount, 56722111)
+        XCTAssertEqual(video?.likeCount, 9363)
+        XCTAssertEqual(video?.repostCount, 4457)
+        XCTAssertEqual(video?.altText, "Video: He looks so good with his purple hair")
+    }
+    
+    func testFixturePrefersMp4OverStreamingImeta() {
+        let video = VineVideo(event: makeVineEvent(tags: VineFixtures.multiIMetaFallback))
+        XCTAssertEqual(video?.playbackURL?.absoluteString, "https://cdn.divine.video/7bdcabe6b308b8a1a261c5b5ec1c6d90292664c6d399fdb8a0d05d4197168edd.mp4")
+        XCTAssertEqual(video?.thumbnailURL?.absoluteString, "https://stream.divine.video/7a324ede-7a9a-4c5a-bf11-de98c3cd6d02/thumbnail.jpg")
+        XCTAssertEqual(video?.hashtags, ["attack"])
+    }
+    
     // MARK: - Helpers
     
     private func makeVineEvent(content: String = "", tags: [[String]]) -> NostrEvent {
