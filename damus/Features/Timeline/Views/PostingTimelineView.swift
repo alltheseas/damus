@@ -193,9 +193,12 @@ struct VineTimelineView: View {
                     infoBanner(text: message)
                 }
                 ForEach(Array(model.vines.enumerated()), id: \.1.id) { index, vine in
-                    VineCard(vine: vine, damus_state: damus_state) {
-                        model.noteAppeared(at: index)
-                    }
+                    VineCard(
+                        vine: vine,
+                        damus_state: damus_state,
+                        onAppear: { model.noteAppeared(at: index) },
+                        onOpenFullScreen: { /* placeholder until full-screen pager is wired */ }
+                    )
                 }
                 if model.vines.isEmpty && !model.isLoading && model.relayMessage == nil {
                     Text("No Vine videos yet. Pull down to refresh.")
@@ -848,7 +851,9 @@ private struct VineCard: View {
     let vine: VineVideo
     let damus_state: DamusState
     let onAppear: () -> Void
+    let onOpenFullScreen: () -> Void
     @State private var isSensitiveRevealed = false
+    @Environment(\.openURL) private var openURL
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -899,13 +904,16 @@ private struct VineCard: View {
     private var videoBody: some View {
         ZStack {
             if let url = vine.playbackURL {
-                DamusVideoPlayerView(url: url, coordinator: damus_state.video, style: .preview(on_tap: nil))
+                DamusVideoPlayerView(url: url, coordinator: damus_state.video, style: .preview(on_tap: onOpenFullScreen))
                     .frame(height: 320)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
             } else {
                 Color.gray.opacity(0.2)
                     .frame(height: 320)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
+                Text(NSLocalizedString("Video unavailable", comment: "Fallback text when a Vine video cannot be loaded."))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
             
             if shouldBlurContent {
@@ -990,6 +998,16 @@ private struct VineCard: View {
             
             if !vine.proofTags.isEmpty {
                 VineMetadataRow(icon: "checkmark.seal", text: NSLocalizedString("ProofMode metadata attached", comment: "Label shown when a Vine video has proof tags attached."))
+            }
+            
+            if let fallback = vine.fallbackURL {
+                Button {
+                    openURL(fallback)
+                } label: {
+                    Label(NSLocalizedString("Open backup stream", comment: "Action to open a fallback Vine video URL when the main stream fails."), systemImage: "arrow.up.right.square")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
             }
             
             Divider()
