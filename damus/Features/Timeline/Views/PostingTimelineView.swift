@@ -7,20 +7,6 @@
 
 import SwiftUI
 
-private enum HomeFeedMode: CaseIterable {
-    case timeline
-    case vines
-    
-    var label: String {
-        switch self {
-        case .timeline:
-            return NSLocalizedString("Notes", comment: "Toggle title for the standard Damus timeline.")
-        case .vines:
-            return NSLocalizedString("Vines", comment: "Toggle title for the Vine video timeline.")
-        }
-    }
-}
-
 struct PostingTimelineView: View {
     
     let damus_state: DamusState
@@ -42,7 +28,6 @@ struct PostingTimelineView: View {
     @Binding var headerOffset: CGFloat
     @SceneStorage("PostingTimelineView.filter_state") var filter_state : FilterState = .posts_and_replies
     @State var timeline_source: TimelineSource = .follows
-    @State private var homeMode: HomeFeedMode = .timeline
     
     var loading: Binding<Bool> {
         Binding(get: {
@@ -70,26 +55,6 @@ struct PostingTimelineView: View {
     
     func contentTimelineView(filter: (@escaping (NostrEvent) -> Bool)) -> some View {
         TimelineView<AnyView>(events: home.events, loading: self.loading, headerHeight: $headerHeight, headerOffset: $headerOffset, damus: damus_state, show_friend_icon: false, filter: filter)
-    }
-    
-    func homeModePicker() -> some View {
-        HStack(spacing: 12) {
-            ForEach(HomeFeedMode.allCases, id: \.self) { mode in
-                Button(action: { homeMode = mode }) {
-                    Text(mode.label)
-                        .font(.callout.weight(.semibold))
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 12)
-                        .frame(maxWidth: .infinity)
-                        .background(homeMode == mode ? DamusColors.purple.opacity(0.15) : Color.secondary.opacity(0.08))
-                        .foregroundColor(homeMode == mode ? DamusColors.purple : .primary)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(mode.label)
-            }
-        }
-        .padding(.top, 8)
     }
     
     func HeaderView() -> some View {
@@ -135,16 +100,11 @@ struct PostingTimelineView: View {
             }
             .padding(.horizontal, 20)
             
-            VStack(spacing: 8) {
-                homeModePicker()
-                if homeMode == .timeline {
-                    CustomPicker(tabs: [
-                        (NSLocalizedString("Notes", comment: "Label for filter for seeing only notes (instead of notes and replies)."), FilterState.posts),
-                        (NSLocalizedString("Notes & Replies", comment: "Label for filter for seeing notes and replies (instead of only notes)."), FilterState.posts_and_replies)
-                    ],
-                                 selection: $filter_state)
-                }
-            }
+            CustomPicker(tabs: [
+                (NSLocalizedString("Notes", comment: "Label for filter for seeing only notes (instead of notes and replies)."), FilterState.posts),
+                (NSLocalizedString("Notes & Replies", comment: "Label for filter for seeing notes and replies (instead of only notes)."), FilterState.posts_and_replies)
+            ],
+                         selection: $filter_state)
             
             Divider()
                 .frame(height: 1)
@@ -157,11 +117,7 @@ struct PostingTimelineView: View {
 
     var body: some View {
         VStack {
-            if homeMode == .timeline {
-                timelineBody
-            } else {
-                VineHomeView(damus_state: damus_state)
-            }
+            timelineBody
         }
         .overlay(alignment: .top) {
             HeaderView()
@@ -221,7 +177,7 @@ struct PostingTimelineView_Previews: PreviewProvider {
 
 // MARK: - Vine feed components
 
-private struct VineHomeView: View {
+struct VineTimelineView: View {
     let damus_state: DamusState
     @StateObject private var model: VineFeedModel
     

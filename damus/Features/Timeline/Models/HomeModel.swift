@@ -1121,6 +1121,8 @@ func timeline_to_notification_bits(_ timeline: Timeline, ev: NostrEvent?) -> New
     switch timeline {
     case .home:
         return [.home]
+    case .vines:
+        return []
     case .notifications:
         if let ev {
             return determine_event_notifications(ev)
