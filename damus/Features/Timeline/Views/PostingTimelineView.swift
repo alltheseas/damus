@@ -872,7 +872,7 @@ private struct VineCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(vine.title)
                     .font(.headline)
-                Text("\(vine.authorDisplay) • \(relativeDate)")
+                Text("\(authorDisplayName) • \(relativeDate)")
                     .font(.footnote)
                     .foregroundColor(.secondary)
                 if let repostedBy = vine.repostedBy {
@@ -1004,6 +1004,14 @@ private struct VineCard: View {
     private var shouldBlurContent: Bool {
         guard let _ = vine.contentWarning else { return false }
         return damus_state.settings.hide_nsfw_tagged_content && !isSensitiveRevealed
+    }
+    
+    private var authorDisplayName: String {
+        if let profileTxn = damus_state.profiles.lookup(id: vine.event.pubkey, txn_name: "vine-card-name") {
+            let profile = profileTxn.unsafeUnownedValue
+            return Profile.displayName(profile: profile, pubkey: vine.event.pubkey).displayName
+        }
+        return vine.authorDisplay
     }
     
     private func formatCount(_ value: Int) -> String {
