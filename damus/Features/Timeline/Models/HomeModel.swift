@@ -642,7 +642,9 @@ class HomeModel: ContactsDelegate, ObservableObject {
                     let currentTime = CFAbsoluteTimeGetCurrent()
                     // Process events in parallel on a separate task, to avoid holding up upcoming signals
                     // Empirical evidence has shown that in at least one instance this technique saved up to 5 seconds of load time!
-                    Task { await lender.justUseACopy({ await process_event(ev: $0, context: .home) }) }
+                    Task { @MainActor in
+                        await lender.justUseACopy({ await process_event(ev: $0, context: .home) })
+                    }
                 case .eose:
                     let eoseTime = CFAbsoluteTimeGetCurrent()
                     Log.info("Home handler task %s: Received general EOSE after %.2f seconds", for: .homeModel, id.uuidString, eoseTime - startTime)
