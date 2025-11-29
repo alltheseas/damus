@@ -334,12 +334,11 @@ private final class VineFeedModel: ObservableObject {
     }
     
     func noteAppeared(at index: Int) {
-        guard let cache = VideoCache.standard else { return }
         let nextIndex = index + 1
         guard vines.indices.contains(nextIndex) else { return }
         guard let url = vines[nextIndex].playbackURL else { return }
         Task.detached(priority: .background) {
-            _ = try? cache.maybe_cached_url_for(video_url: url)
+            _ = try? await URLSession.shared.data(from: url)
         }
     }
     
