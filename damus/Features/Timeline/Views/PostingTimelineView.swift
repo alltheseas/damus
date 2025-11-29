@@ -469,7 +469,7 @@ private final class VineFeedModel: ObservableObject {
     
     private func fetchPage(before: UInt32?) async -> [NostrEvent] {
         var filter = NostrFilter(kinds: [.vine_short])
-        filter.limit = pageSize
+        filter.limit = UInt32(pageSize)
         let now = UInt32(Date().timeIntervalSince1970)
         filter.until = before ?? now
         return await damus_state.nostrNetwork.reader.query(filters: [filter], to: [.vineRelay], timeout: .seconds(10))
@@ -514,9 +514,9 @@ private final class VineFeedModel: ObservableObject {
         return true
     }
     
+    @MainActor
     private func prefetch(url: URL, allowCellular: Bool) async {
-        guard await markPrefetching(url) else { return }
-        defer { await unmarkPrefetching(url) }
+        guard markPrefetching(url) else { return }
         var request = URLRequest(url: url)
         request.allowsExpensiveNetworkAccess = allowCellular
         request.allowsConstrainedNetworkAccess = allowCellular
@@ -526,6 +526,7 @@ private final class VineFeedModel: ObservableObject {
         } catch {
             Log.debug("Vine prefetch failed for %s: %s", for: .timeline, url.absoluteString, error.localizedDescription)
         }
+        unmarkPrefetching(url)
     }
     
     @MainActor
