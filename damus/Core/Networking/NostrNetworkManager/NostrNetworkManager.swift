@@ -150,6 +150,15 @@ class NostrNetworkManager {
         await pool.connect(to: [relayURL])
     }
     
+    /// Disconnects and removes a relay from the pool if we previously added it.
+    func disconnectRelay(_ relayURL: RelayURL) async {
+        guard await pool.get_relay(relayURL) != nil else {
+            return
+        }
+        
+        await pool.remove_relay(relayURL)
+    }
+    
     // MARK: NWC
     // TODO: Move this to NWCManager
     
