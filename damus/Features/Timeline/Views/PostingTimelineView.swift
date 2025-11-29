@@ -250,7 +250,6 @@ private final class VineFeedModel: ObservableObject {
     private let damus_state: DamusState
     private var streamTask: Task<Void, Never>?
     private var lastSeenTimestamp: UInt32?
-    private let videoCache = VideoCache.standard
     private var managedRelayConnection = false
     
     init(damus_state: DamusState) {
@@ -297,18 +296,13 @@ private final class VineFeedModel: ObservableObject {
     }
     
     func noteAppeared(at index: Int) {
-        prefetchVideos(around: index)
-    }
-    
-    private func prefetchVideos(around index: Int) {
-        guard let cache = videoCache else { return }
         let targets = [index, index + 1]
         Task.detached(priority: .background) { [weak self] in
             guard let self else { return }
             for target in targets {
                 guard self.vines.indices.contains(target),
                       let url = self.vines[target].playbackURL else { continue }
-                _ = try? cache.maybe_cached_url_for(video_url: url)
+                _ = try? await URLSession.shared.data(from: url)
             }
         }
     }
@@ -579,7 +573,7 @@ struct VineVideo: Identifiable, Equatable {
             return lhs.priority < rhs.priority
         }
         guard let primaryURL = sorted.first?.url else {
-            Log.warn("VineVideo missing playable URL for event %s", for: .video, event.id.hex())
+            Log.debug("VineVideo missing playable URL for event %s", for: .timeline, event.id.hex())
             return nil
         }
         
