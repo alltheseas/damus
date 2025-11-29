@@ -991,6 +991,11 @@ private struct VineCard: View {
             if !vine.proofTags.isEmpty {
                 VineMetadataRow(icon: "checkmark.seal", text: NSLocalizedString("ProofMode metadata attached", comment: "Label shown when a Vine video has proof tags attached."))
             }
+            
+            Divider()
+                .padding(.vertical, 4)
+            
+            EventActionBar(damus_state: damus_state, event: vine.event, options: [.no_spread])
         }
     }
     
