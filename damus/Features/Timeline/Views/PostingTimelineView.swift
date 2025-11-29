@@ -180,6 +180,8 @@ struct PostingTimelineView_Previews: PreviewProvider {
 struct VineTimelineView: View {
     let damus_state: DamusState
     @StateObject private var model: VineFeedModel
+    @State private var presentingFullScreen = false
+    @State private var fullScreenIndex = 0
     
     init(damus_state: DamusState) {
         self.damus_state = damus_state
@@ -197,7 +199,10 @@ struct VineTimelineView: View {
                         vine: vine,
                         damus_state: damus_state,
                         onAppear: { model.noteAppeared(at: index) },
-                        onOpenFullScreen: { /* placeholder until full-screen pager is wired */ }
+                        onOpenFullScreen: {
+                            fullScreenIndex = index
+                            presentingFullScreen = true
+                        }
                     )
                 }
                 if model.vines.isEmpty && !model.isLoading && model.relayMessage == nil {
@@ -225,6 +230,14 @@ struct VineTimelineView: View {
         .onDisappear { model.stop(disconnect: true) }
         .onReceive(damus_state.settings.objectWillChange) { _ in
             model.handleSettingsChange()
+        }
+        .damus_full_screen_cover($presentingFullScreen, damus_state: damus_state) {
+            VineFullScreenPager(
+                model: model,
+                damus_state: damus_state,
+                initialIndex: fullScreenIndex,
+                onClose: { presentingFullScreen = false }
+            )
         }
     }
     
@@ -1070,5 +1083,129 @@ private struct VineMetadataRow: View {
                 .foregroundColor(.secondary)
             Spacer()
         }
+    }
+}
+
+private struct VineFullScreenPager: View {
+    @ObservedObject var model: VineFeedModel
+    let damus_state: DamusState
+    let onClose: () -> Void
+    @State private var selection: Int
+    
+    init(model: VineFeedModel, damus_state: DamusState, initialIndex: Int, onClose: @escaping () -> Void) {
+        self._model = ObservedObject(wrappedValue: model)
+        self.damus_state = damus_state
+        self._selection = State(initialValue: initialIndex)
+        self.onClose = onClose
+    }
+    
+    var body: some View {
+        GeometryReader { geo in
+            TabView(selection: $selection) {
+                ForEach(Array(model.vines.enumerated()), id: \.1.id) { index, vine in
+                    VineFullScreenPage(vine: vine, damus_state: damus_state)
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .rotationEffect(.degrees(-90))
+                        .tag(index)
+                }
+            }
+            .frame(width: geo.size.height, height: geo.size.width)
+            .rotationEffect(.degrees(90))
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .offset(x: (geo.size.width - geo.size.height) / 2, y: (geo.size.height - geo.size.width) / 2)
+        }
+        .background(Color.black.ignoresSafeArea())
+        .environment(\.view_layer_context, .full_screen_layer)
+        .overlay(alignment: .topTrailing) {
+            Button(action: onClose) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(.white)
+                    .padding()
+            }
+            .accessibilityLabel(Text(NSLocalizedString("Close", comment: "Close button label for Vine full-screen player.")))
+        }
+        .onAppear {
+            model.noteAppeared(at: selection)
+        }
+        .onChange(of: selection) { idx in
+            model.noteAppeared(at: idx)
+        }
+    }
+}
+
+private struct VineFullScreenPage: View {
+    let vine: VineVideo
+    let damus_state: DamusState
+    @Environment(\.openURL) private var openURL
+    
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            if let url = vine.playbackURL ?? vine.fallbackURL {
+                DamusVideoPlayerView(url: url, coordinator: damus_state.video, style: .full)
+                    .ignoresSafeArea()
+            } else {
+                Color.black
+                Text(NSLocalizedString("Video unavailable", comment: "Fallback text when a Vine video cannot be loaded."))
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding()
+            }
+            
+            VStack(alignment: .leading, spacing: 10) {
+                Text(vine.title)
+                    .font(.title2.bold())
+                    .foregroundColor(.white)
+                Text("\(authorLine) • \(relativeDate)")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.8))
+                
+                if let summary = vine.summary {
+                    Text(summary)
+                        .font(.body)
+                        .foregroundColor(.white)
+                        .padding(.top, 4)
+                }
+                
+                if let fallback = vine.fallbackURL {
+                    Button {
+                        openURL(fallback)
+                    } label: {
+                        Label(NSLocalizedString("Open backup stream", comment: "Action to open a fallback Vine video URL when the main stream fails."), systemImage: "arrow.up.right.square")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white.opacity(0.2))
+                }
+                
+                EventActionBar(damus_state: damus_state, event: vine.event, options: [.no_spread])
+                    .tint(.white)
+            }
+            .padding()
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.8), Color.black.opacity(0)],
+                    startPoint: .bottom,
+                    endPoint: .top
+                )
+            )
+        }
+        .background(Color.black)
+        .ignoresSafeArea()
+    }
+    
+    private var authorLine: String {
+        if let profileTxn = damus_state.profiles.lookup(id: vine.event.pubkey, txn_name: "vine-fullscreen-name"),
+           let profile = profileTxn.unsafeUnownedValue {
+            return Profile.displayName(profile: profile, pubkey: vine.event.pubkey).displayName
+        }
+        return vine.authorDisplay
+    }
+    
+    private var relativeDate: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        let date = Date(timeIntervalSince1970: TimeInterval(vine.createdAt))
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
