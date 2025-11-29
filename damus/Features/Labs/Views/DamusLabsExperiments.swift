@@ -13,9 +13,11 @@ struct DamusLabsExperiments: View {
     @ObservedObject var settings: UserSettingsStore
     @State var show_live_explainer: Bool = false
     @State var show_favorites_explainer: Bool = false
+    @State var show_vines_explainer: Bool = false
     
     let live_label = NSLocalizedString("Live", comment: "Label for a toggle that enables an experimental feature")
     let favorites_label = NSLocalizedString("Favorites", comment: "Label for a toggle that enables an experimental feature")
+    let vines_label = NSLocalizedString("Vines", comment: "Label for a toggle that enables an experimental feature")
     
     var body: some View {
         ScrollView {
@@ -44,6 +46,7 @@ struct DamusLabsExperiments: View {
                 
                 LabsToggleView(toggleName: live_label, systemImage: "record.circle", isOn: $settings.live, showInfo: $show_live_explainer)
                 LabsToggleView(toggleName: favorites_label, systemImage: "heart.fill", isOn: $settings.enable_favourites_feature, showInfo: $show_favorites_explainer)
+                LabsToggleView(toggleName: vines_label, systemImage: "video", isOn: $settings.enable_vine_feature, showInfo: $show_vines_explainer)
 
             }
             .padding([.trailing, .leading], 20)
@@ -66,6 +69,12 @@ struct DamusLabsExperiments: View {
                 labName: favorites_label,
                 systemImage: "heart.fill",
                 labDescription: NSLocalizedString("This will allow you to pick users to be part of your favorites list. You can also switch your profile timeline to only see posts from your favorite contacts.", comment: "Damus Labs feature explanation"))
+        }
+        .sheet(isPresented: $show_vines_explainer) {
+            LabsExplainerView(
+                labName: vines_label,
+                systemImage: "video",
+                labDescription: NSLocalizedString("Enables the Vines tab so you can browse short Divine videos inside Damus. This is still experimental and requires the Divine relay.", comment: "Damus Labs feature explanation"))
         }
     }
 }
