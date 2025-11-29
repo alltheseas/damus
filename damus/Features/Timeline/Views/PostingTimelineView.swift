@@ -264,6 +264,7 @@ private final class VineFeedModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var relayMessage: String? = nil
     
+    private let pageSize = 40
     private let damus_state: DamusState
     private var streamTask: Task<Void, Never>?
     private var lastSeenTimestamp: UInt32?
@@ -273,6 +274,9 @@ private final class VineFeedModel: ObservableObject {
     @MainActor private var pathIsExpensive = false
     @MainActor private var pathIsConstrained = false
     @MainActor private var prefetchingURLs: Set<URL> = []
+    @MainActor private var oldestTimestamp: UInt32?
+    @MainActor private var isLoadingOlder = false
+    @MainActor private var hasMoreOlder = true
     
     init(damus_state: DamusState) {
         self.damus_state = damus_state
@@ -287,7 +291,10 @@ private final class VineFeedModel: ObservableObject {
     
     func subscribe() {
         stop()
-        streamTask = Task { await self.stream() }
+        streamTask = Task {
+            await self.loadInitialPage()
+            await self.stream()
+        }
     }
     
     func stop(disconnect: Bool = false) {
@@ -304,6 +311,8 @@ private final class VineFeedModel: ObservableObject {
         await MainActor.run {
             vines.removeAll()
             lastSeenTimestamp = nil
+            oldestTimestamp = nil
+            hasMoreOlder = true
         }
         subscribe()
     }
@@ -326,6 +335,7 @@ private final class VineFeedModel: ObservableObject {
     
     @MainActor
     func noteAppeared(at index: Int) {
+        maybeLoadOlder(after: index)
         guard shouldPrefetchVideos else { return }
         let targets = [index, index + 1]
         let allowCellular = damus_state.settings.prefetch_vines_on_cellular
@@ -429,6 +439,70 @@ private final class VineFeedModel: ObservableObject {
         await MainActor.run { self.managedRelayConnection = false }
     }
     
+    private func loadInitialPage() async {
+        await MainActor.run {
+            isLoading = true
+            vines.removeAll()
+        }
+        let events = await fetchPage(before: nil)
+        await MainActor.run {
+            applyPage(events, reset: true)
+            isLoading = false
+        }
+    }
+    
+    private func loadOlderPage() async {
+        let before = await MainActor.run { self.oldestTimestamp }
+        guard let before else { return }
+        let events = await fetchPage(before: before > 0 ? before - 1 : 0)
+        if events.isEmpty {
+            await MainActor.run {
+                self.hasMoreOlder = false
+                self.isLoadingOlder = false
+            }
+            return
+        }
+        await MainActor.run {
+            applyPage(events, reset: false)
+        }
+    }
+    
+    private func fetchPage(before: UInt32?) async -> [NostrEvent] {
+        var filter = NostrFilter(kinds: [.vine_short])
+        filter.limit = pageSize
+        let now = UInt32(Date().timeIntervalSince1970)
+        filter.until = before ?? now
+        return await damus_state.nostrNetwork.reader.query(filters: [filter], to: [.vineRelay], timeout: .seconds(10))
+    }
+    
+    @MainActor
+    private func applyPage(_ events: [NostrEvent], reset: Bool) {
+        var videos = events.compactMap { VineVideo(event: $0) }
+        videos.sort { $0.createdAt > $1.createdAt }
+        if reset {
+            vines = videos
+        } else {
+            let newVideos = videos.filter { video in
+                !vines.contains(where: { $0.dedupeKey == video.dedupeKey })
+            }
+            vines.append(contentsOf: newVideos)
+            vines.sort { $0.createdAt > $1.createdAt }
+            if newVideos.isEmpty {
+                hasMoreOlder = false
+            }
+        }
+        if let newest = vines.first?.createdAt {
+            lastSeenTimestamp = max(lastSeenTimestamp ?? 0, newest)
+        }
+        if let oldest = vines.last?.createdAt {
+            oldestTimestamp = oldest
+        }
+        if hasMoreOlder {
+            hasMoreOlder = videos.count == pageSize
+        }
+        isLoadingOlder = false
+    }
+    
     @MainActor
     private var shouldPrefetchVideos: Bool {
         if pathIsConstrained {
@@ -466,6 +540,17 @@ private final class VineFeedModel: ObservableObject {
     @MainActor
     private func unmarkPrefetching(_ url: URL) {
         prefetchingURLs.remove(url)
+    }
+    
+    @MainActor
+    private func maybeLoadOlder(after index: Int) {
+        guard hasMoreOlder, !isLoadingOlder else { return }
+        if index >= vines.count - 5 {
+            isLoadingOlder = true
+            Task {
+                await self.loadOlderPage()
+            }
+        }
     }
     
     deinit {
