@@ -41,3 +41,50 @@ final class NostrEventTests: XCTestCase {
         XCTAssert(testEvent2.content.contains(urlInContent2), "Issue parsing event. Expected to see '\(urlInContent2)' inside \(testEvent2.content)")
     }
 }
+
+final class VineVideoTests: XCTestCase {
+    func testPrefersExplicitMp4OverStreaming() {
+        let tags: [[String]] = [
+            ["d", "vine-prefers-mp4"],
+            ["streaming", "https://example.com/video.m3u8", "hls"],
+            ["imeta", "url", "https://example.com/video.m3u8", "mp4", "https://example.com/video.mp4"]
+        ]
+        let video = VineVideo(event: makeVineEvent(tags: tags))
+        XCTAssertEqual(video?.playbackURL?.absoluteString, "https://example.com/video.mp4")
+    }
+    
+    func testExtractsURLFromContentWhenTagsMissing() {
+        let content = "Here is a clip https://example.com/moment.mp4"
+        let tags: [[String]] = [
+            ["d", "vine-content"]
+        ]
+        let video = VineVideo(event: makeVineEvent(content: content, tags: tags))
+        XCTAssertEqual(video?.playbackURL?.absoluteString, "https://example.com/moment.mp4")
+    }
+    
+    func testParsesOriginMetadata() {
+        let tags: [[String]] = [
+            ["d", "vine-origin"],
+            ["origin", "vine", "abc123", "Recovered"]
+        ]
+        let video = VineVideo(event: makeVineEvent(tags: tags))
+        XCTAssertEqual(video?.originDescription, "vine • abc123 – Recovered")
+    }
+    
+    func testUsesReferenceThumbnailWhenAvailable() {
+        let tags: [[String]] = [
+            ["d", "vine-thumb"],
+            ["url", "https://example.com/video.mp4"],
+            ["r", "https://example.com/thumb.jpg", "thumbnail"]
+        ]
+        let video = VineVideo(event: makeVineEvent(tags: tags))
+        XCTAssertEqual(video?.thumbnailURL?.absoluteString, "https://example.com/thumb.jpg")
+    }
+    
+    // MARK: - Helpers
+    
+    private func makeVineEvent(content: String = "", tags: [[String]]) -> NostrEvent {
+        let keypair = generate_new_keypair().to_keypair()
+        return NostrEvent(content: content, keypair: keypair, kind: NostrKind.vine_short.rawValue, tags: tags)!
+    }
+}
