@@ -250,6 +250,7 @@ private final class VineFeedModel: ObservableObject {
     private let damus_state: DamusState
     private var streamTask: Task<Void, Never>?
     private var lastSeenTimestamp: UInt32?
+    private let videoCache = VideoCache.standard
     
     init(damus_state: DamusState) {
         self.damus_state = damus_state
@@ -290,11 +291,19 @@ private final class VineFeedModel: ObservableObject {
     }
     
     func noteAppeared(at index: Int) {
-        let nextIndex = index + 1
-        guard vines.indices.contains(nextIndex) else { return }
-        guard let url = vines[nextIndex].playbackURL else { return }
-        Task.detached(priority: .background) {
-            _ = try? await URLSession.shared.data(from: url)
+        prefetchVideos(around: index)
+    }
+    
+    private func prefetchVideos(around index: Int) {
+        guard let cache = videoCache else { return }
+        let targets = [index, index + 1]
+        Task.detached(priority: .background) { [weak self] in
+            guard let self else { return }
+            for target in targets {
+                guard self.vines.indices.contains(target),
+                      let url = self.vines[target].playbackURL else { continue }
+                _ = try? cache.maybe_cached_url_for(video_url: url)
+            }
         }
     }
     
