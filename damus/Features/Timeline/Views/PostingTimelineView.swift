@@ -849,6 +849,11 @@ private struct VineCard: View {
             Text("\(vine.authorDisplay) • \(relativeDate)")
                 .font(.footnote)
                 .foregroundColor(.secondary)
+            if let repostedBy = vine.repostedBy {
+                Text(String(format: NSLocalizedString("Reposted by %@", comment: "Label showing the author who reposted a Vine video."), repostedBy))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
     }
     
@@ -885,6 +890,15 @@ private struct VineCard: View {
                 }
             }
         }
+        .overlay(alignment: .topLeading) {
+            if let warning = vine.contentWarning, !shouldBlurContent {
+                Label(warning, systemImage: "eye.trianglebadge.exclamationmark")
+                    .font(.caption2.weight(.semibold))
+                    .padding(8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(10)
+            }
+        }
     }
     
     private var metadataRows: some View {
@@ -892,6 +906,12 @@ private struct VineCard: View {
             if let summary = vine.summary {
                 Text(summary)
                     .font(.body)
+            }
+            
+            if let alt = vine.altText {
+                Text(alt)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
             }
             
             if !vine.hashtags.isEmpty {
@@ -921,6 +941,14 @@ private struct VineCard: View {
                 VineMetadataRow(icon: "aspectratio", text: dim)
             }
             
+            if let loops = vine.loopCount {
+                VineMetadataRow(icon: "repeat", text: String(format: NSLocalizedString("%@ loops", comment: "Formatted loop count for a Vine video."), formatCount(loops)))
+            }
+            
+            if let likes = vine.likeCount {
+                VineMetadataRow(icon: "hand.thumbsup", text: String(format: NSLocalizedString("%@ likes", comment: "Formatted like count for a Vine video."), formatCount(likes)))
+            }
+            
             if !vine.proofTags.isEmpty {
                 VineMetadataRow(icon: "checkmark.seal", text: NSLocalizedString("ProofMode metadata attached", comment: "Label shown when a Vine video has proof tags attached."))
             }
@@ -937,6 +965,19 @@ private struct VineCard: View {
     private var shouldBlurContent: Bool {
         guard let _ = vine.contentWarning else { return false }
         return damus_state.settings.hide_nsfw_tagged_content && !isSensitiveRevealed
+    }
+    
+    private func formatCount(_ value: Int) -> String {
+        let number = Double(value)
+        let thousand = number / 1_000
+        let million = number / 1_000_000
+        if million >= 1.0 {
+            return String(format: "%.1fM", million)
+        } else if thousand >= 1.0 {
+            return String(format: "%.1fK", thousand)
+        } else {
+            return "\(value)"
+        }
     }
 }
 
