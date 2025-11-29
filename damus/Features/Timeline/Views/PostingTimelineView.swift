@@ -579,6 +579,7 @@ struct VineVideo: Identifiable, Equatable {
             return lhs.priority < rhs.priority
         }
         guard let primaryURL = sorted.first?.url else {
+            Log.warn("VineVideo missing playable URL for event %s", for: .video, event.id.hex())
             return nil
         }
         
@@ -873,15 +874,29 @@ private struct VineCard: View {
     }
     
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(vine.title)
-                .font(.headline)
-            Text("\(vine.authorDisplay) • \(relativeDate)")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-            if let repostedBy = vine.repostedBy {
-                Text(String(format: NSLocalizedString("Reposted by %@", comment: "Label showing the author who reposted a Vine video."), repostedBy))
-                    .font(.caption)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(vine.title)
+                    .font(.headline)
+                Text("\(vine.authorDisplay) • \(relativeDate)")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                if let repostedBy = vine.repostedBy {
+                    Text(String(format: NSLocalizedString("Reposted by %@", comment: "Label showing the author who reposted a Vine video."), repostedBy))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            Spacer()
+            Menu {
+                Button {
+                    reportVine()
+                } label: {
+                    Label(NSLocalizedString("Report Vine", comment: "Menu action to report a Vine video."), systemImage: "flag")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.title3)
                     .foregroundColor(.secondary)
             }
         }
@@ -1008,6 +1023,11 @@ private struct VineCard: View {
         } else {
             return "\(value)"
         }
+    }
+    
+    private func reportVine() {
+        let target = ReportNoteTarget(pubkey: vine.event.pubkey, note_id: vine.event.id)
+        notify(.report(.note(target)))
     }
 }
 
