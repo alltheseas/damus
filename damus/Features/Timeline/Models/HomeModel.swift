@@ -219,6 +219,8 @@ class HomeModel: ContactsDelegate, ObservableObject {
             handle_nwc_response(ev)
         case .http_auth:
             break
+        case .vine_short:
+            break
         case .status:
             handle_status_event(ev)
         case .draft:
