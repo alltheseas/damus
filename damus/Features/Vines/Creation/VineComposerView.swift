@@ -271,13 +271,10 @@ struct VineComposerView: View {
     }
     
     private func convertVideoToMP4IfNeeded(localURL: URL) async -> URL? {
-        if localURL.pathExtension.lowercased() == "mp4" {
-            return localURL
-        }
         return await withCheckedContinuation { continuation in
             let asset = AVAsset(url: localURL)
             guard let exporter = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetHighestQuality) else {
-                continuation.resume(returning: nil)
+                continuation.resume(returning: localURL.pathExtension.lowercased() == "mp4" ? localURL : nil)
                 return
             }
             
@@ -285,6 +282,7 @@ struct VineComposerView: View {
             exporter.outputURL = destinationURL
             exporter.outputFileType = .mp4
             exporter.shouldOptimizeForNetworkUse = true
+            exporter.metadataItemFilter = AVMetadataItemFilter.forSharing()
             exporter.exportAsynchronously {
                 switch exporter.status {
                 case .completed:
