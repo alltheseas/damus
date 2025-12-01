@@ -41,6 +41,8 @@ fileprivate func processImage(source: CGImageSource, fileExtension: String) -> U
 }
 
 /// Re-encodes the video to MP4 and removes sensitive metadata (GPS, etc.)
+/// We always run this before uploading so clips recorded anywhere inside Damus
+/// (camera, share extension, etc.) never leak location data.
 func processVideo(videoURL: URL) -> URL? {
     let destinationURL = generateUniqueTemporaryMediaURL(fileExtension: "mp4")
     if exportVideoStrippingSensitiveMetadata(from: videoURL, to: destinationURL) {
@@ -94,7 +96,8 @@ func generateMediaUpload(_ media: PreUploadedMedia?) -> MediaUpload? {
     case .processed_image(let url):
         return .image(url)
     case .processed_video(let url):
-        return .video(url)
+        guard let sanitizedUrl = processVideo(videoURL: url) else { return nil }
+        return .video(sanitizedUrl)
     case .unprocessed_video(let url):
         guard let newUrl = processVideo(videoURL: url) else { return nil }
         url.stopAccessingSecurityScopedResource()
