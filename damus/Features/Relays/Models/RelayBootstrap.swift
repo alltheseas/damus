@@ -63,10 +63,24 @@ func load_bootstrap_relays(pubkey: Pubkey) -> [RelayURL] {
     return loaded_relays
 }
 
+/// Returns the user's region, compatible with iOS 15+.
+/// Uses Locale.current.region on iOS 16+ and falls back to regionCode on iOS 15.
+private func getCurrentRegion() -> Locale.Region? {
+    if #available(iOS 16.0, *) {
+        return Locale.current.region
+    } else {
+        // On iOS 15, use regionCode and convert to Region
+        guard let regionCode = Locale.current.regionCode else {
+            return nil
+        }
+        return Locale.Region(regionCode)
+    }
+}
+
 func get_default_bootstrap_relays() -> [RelayURL] {
     var default_bootstrap_relays: [RelayURL] = BOOTSTRAP_RELAYS.compactMap({ RelayURL($0) })
 
-    if let user_region = Locale.current.region, let regional_bootstrap_relays = REGION_SPECIFIC_BOOTSTRAP_RELAYS[user_region] {
+    if let user_region = getCurrentRegion(), let regional_bootstrap_relays = REGION_SPECIFIC_BOOTSTRAP_RELAYS[user_region] {
         default_bootstrap_relays.append(contentsOf: regional_bootstrap_relays.compactMap({ RelayURL($0) }))
     }
 
