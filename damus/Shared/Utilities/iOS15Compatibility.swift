@@ -120,3 +120,21 @@ extension View {
         }
     }
 }
+
+// MARK: - Context Menu Helpers
+
+extension View {
+    /// Applies contextMenu with preview on iOS 16+, falls back to simple contextMenu on iOS 15.
+    /// The preview parameter is only used on iOS 16+.
+    @ViewBuilder
+    func contextMenuWithPreview<MenuItems: View, Preview: View>(
+        @ViewBuilder menuItems: () -> MenuItems,
+        @ViewBuilder preview: () -> Preview
+    ) -> some View {
+        if #available(iOS 16.0, *) {
+            self.contextMenu(menuItems: menuItems, preview: preview)
+        } else {
+            self.contextMenu(menuItems: menuItems)
+        }
+    }
+}

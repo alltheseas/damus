@@ -35,15 +35,20 @@ struct UserStatusView: View {
                 openURL(url)
             }
         }
-        .contextMenu(
+        .contextMenuWithPreview(
             menuItems: {
                 if let url = st.url {
-                    Button(url.absoluteString, action: { openURL(url) }) }
-            }, preview: {
+                    Button(url.absoluteString, action: { openURL(url) })
+                }
+            },
+            preview: {
                 if let url = st.url {
                     URLPreview(url: url)
+                } else {
+                    EmptyView()
                 }
-            })
+            }
+        )
     }
 
     var body: some View {
