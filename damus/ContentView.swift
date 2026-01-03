@@ -10,6 +10,7 @@ import AVKit
 import MediaPlayer
 import EmojiPicker
 import TipKit
+import NavigationBackport
 
 struct ZapSheet {
     let target: ZapTarget
@@ -235,7 +236,7 @@ struct ContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let damus = self.damus_state {
-                NavigationStack(path: $navigationCoordinator.path) {
+                NBNavigationStack(path: $navigationCoordinator.path) {
                     TabView { // Prevents navbar appearance change on scroll
                         MainContent(damus: damus)
                             .toolbar() {
@@ -267,7 +268,7 @@ struct ContentView: View {
                     .overlay(
                         SideMenuView(damus_state: damus_state!, isSidebarVisible: $isSideBarOpened.animation(), selected: $selected_timeline)
                     )
-                    .navigationDestination(for: Route.self) { route in
+                    .nbNavigationDestination(for: Route.self) { route in
                         route.view(navigationCoordinator: navigationCoordinator, damusState: damus_state!)
                     }
                     .onReceive(handle_notify(.switched_timeline)) { _ in
