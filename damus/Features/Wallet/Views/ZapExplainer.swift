@@ -7,20 +7,6 @@
 
 import SwiftUI
 
-// MARK: - iOS 15 Compatibility
-
-private extension View {
-    /// Hides scroll indicators on iOS 16+, no-op on iOS 15.
-    @ViewBuilder
-    func scrollIndicatorsHiddenCompat() -> some View {
-        if #available(iOS 16.0, *) {
-            self.scrollIndicators(.hidden)
-        } else {
-            self
-        }
-    }
-}
-
 struct ZapExplainerView: View {
     
     @Binding var show_introduction: Bool
@@ -207,6 +193,20 @@ struct ZapExplainerView: View {
                 .stroke(DamusColors.neutral1, lineWidth: 2)
         )
         .padding(.top, 20)
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .scrollIndicators(.hidden) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func scrollIndicatorsHiddenCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollIndicators(.hidden)
+        } else {
+            self
+        }
     }
 }
 

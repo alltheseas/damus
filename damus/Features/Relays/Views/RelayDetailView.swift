@@ -7,20 +7,6 @@
 
 import SwiftUI
 
-// MARK: - iOS 15 Compatibility
-
-private extension View {
-    /// Hides scroll indicators on iOS 16+, no-op on iOS 15.
-    @ViewBuilder
-    func scrollIndicatorsHiddenCompat() -> some View {
-        if #available(iOS 16.0, *) {
-            self.scrollIndicatorsHiddenCompat()
-        } else {
-            self
-        }
-    }
-}
-
 struct RelayDetailView: View {
     let state: DamusState
     let relay: RelayURL
@@ -218,6 +204,20 @@ struct RelayDetailView: View {
         }
         catch {
             present_sheet(.error(error.humanReadableError))
+        }
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .scrollIndicators(.hidden) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func scrollIndicatorsHiddenCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollIndicators(.hidden)
+        } else {
+            self
         }
     }
 }

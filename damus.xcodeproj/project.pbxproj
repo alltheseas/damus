@@ -8428,9 +8428,9 @@
 		};
 		D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop-iOS15" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "file:///tmp/SwiftyCrop-iOS15";
+			repositoryURL = "https://github.com/alltheseas/SwiftyCrop.git";
 			requirement = {
-				branch = master;
+				branch = "ios-15-support";
 				kind = branch;
 			};
 		};

@@ -62,11 +62,11 @@ extension View {
         }
     }
 
-    /// Applies .presentationDetents([.height(height), .medium, .large]) on iOS 16+, no-op on iOS 15.
+    /// Applies .presentationDetents([.height(height), .height(mediumHeight), .large]) on iOS 16+, no-op on iOS 15.
     @ViewBuilder
     func presentationDetentsHeightMediumLarge(_ height: CGFloat, mediumHeight: CGFloat) -> some View {
         if #available(iOS 16.0, *) {
-            self.presentationDetents([.height(height), .medium, .large])
+            self.presentationDetents([.height(height), .height(mediumHeight), .large])
         } else {
             self
         }
@@ -101,16 +101,6 @@ extension View {
     func scrollDismissesKeyboardInteractively() -> some View {
         if #available(iOS 16.0, *) {
             self.scrollDismissesKeyboard(.interactively)
-        } else {
-            self
-        }
-    }
-
-    /// Applies .scrollIndicators(.hidden) on iOS 16+, no-op on iOS 15.
-    @ViewBuilder
-    func scrollIndicatorsHidden() -> some View {
-        if #available(iOS 16.0, *) {
-            self.scrollIndicators(.hidden)
         } else {
             self
         }

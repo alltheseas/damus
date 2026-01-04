@@ -338,7 +338,7 @@ class DamusPurple: StoreObserverDelegate {
         guard let checkout_id = checkout?.id.uuidString.lowercased() else { throw PurpleError.error_processing_response }
         try await self.verify_npub_for_checkout(checkout_id: checkout_id)
         return self.environment.purple_landing_page_url()
-            .appendingPathCompat("checkout")
+            .appendingPathCompat("/checkout")
             .appendingQueryItemsCompat([URLQueryItem(name: "id", value: checkout_id)])
     }
     

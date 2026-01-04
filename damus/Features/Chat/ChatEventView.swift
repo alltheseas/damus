@@ -16,7 +16,7 @@ import SwipeActions
 private struct ChatSheetPresentationModifier: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 16.0, *) {
-            content.modifier(ChatSheetPresentationModifier())
+            content.presentationDetents([.medium, .large])
         } else {
             content
         }

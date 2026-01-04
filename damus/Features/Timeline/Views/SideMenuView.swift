@@ -8,20 +8,6 @@
 import SwiftUI
 import NavigationBackport
 
-// MARK: - iOS 15 Compatibility
-
-private extension View {
-    /// Hides scroll indicators on iOS 16+, no-op on iOS 15.
-    @ViewBuilder
-    func scrollIndicatorsHiddenCompat() -> some View {
-        if #available(iOS 16.0, *) {
-            self.scrollIndicatorsHiddenCompat()
-        } else {
-            self
-        }
-    }
-}
-
 @MainActor
 struct SideMenuView: View {
     let damus_state: DamusState
@@ -287,6 +273,20 @@ struct SideMenuView: View {
                 .dynamicTypeSize(.xSmall)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
+        }
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .scrollIndicators(.hidden) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func scrollIndicatorsHiddenCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollIndicators(.hidden)
+        } else {
+            self
         }
     }
 }

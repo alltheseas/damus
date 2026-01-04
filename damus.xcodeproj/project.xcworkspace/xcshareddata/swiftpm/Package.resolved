@@ -133,11 +133,11 @@
       }
     },
     {
-      "identity" : "swiftycrop-ios15",
-      "kind" : "localSourceControl",
-      "location" : "/tmp/SwiftyCrop-iOS15",
+      "identity" : "swiftycrop",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/alltheseas/SwiftyCrop.git",
       "state" : {
-        "branch" : "master",
+        "branch" : "ios-15-support",
         "revision" : "d4f3a4bb41759ff08d8703a8f765ee3b8b6fd5b1"
       }
     },

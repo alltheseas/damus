@@ -197,17 +197,6 @@ struct LongformPreview: View {
     }
 }
 
-struct LongformPreview_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack {
-            LongformPreview(state: test_damus_state, ev: test_longform_event.event, options: [])
-
-            LongformPreview(state: test_damus_state, ev: test_longform_event.event, options: [.wide])
-        }
-        .frame(height: 400)
-    }
-}
-
 // MARK: - iOS 15 Compatibility
 
 private extension View {
@@ -219,5 +208,16 @@ private extension View {
         } else {
             self
         }
+    }
+}
+
+struct LongformPreview_Previews: PreviewProvider {
+    static var previews: some View {
+        VStack {
+            LongformPreview(state: test_damus_state, ev: test_longform_event.event, options: [])
+
+            LongformPreview(state: test_damus_state, ev: test_longform_event.event, options: [.wide])
+        }
+        .frame(height: 400)
     }
 }
