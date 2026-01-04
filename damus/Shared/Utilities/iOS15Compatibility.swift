@@ -52,6 +52,26 @@ extension View {
         }
     }
 
+    /// Applies .presentationDetents([.height(height), .medium, .large]) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func presentationDetentsHeightMediumLarge(_ height: CGFloat) -> some View {
+        if #available(iOS 16.0, *) {
+            self.presentationDetents([.height(height), .medium, .large])
+        } else {
+            self
+        }
+    }
+
+    /// Applies .presentationDetents([.height(height), .medium, .large]) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func presentationDetentsHeightMediumLarge(_ height: CGFloat, mediumHeight: CGFloat) -> some View {
+        if #available(iOS 16.0, *) {
+            self.presentationDetents([.height(height), .medium, .large])
+        } else {
+            self
+        }
+    }
+
     /// Applies .presentationDragIndicator(.visible) on iOS 16+, no-op on iOS 15.
     @ViewBuilder
     func presentationDragIndicatorVisible() -> some View {

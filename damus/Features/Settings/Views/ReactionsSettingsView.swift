@@ -9,6 +9,19 @@ import SwiftUI
 import EmojiPicker
 import EmojiKit
 
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier for medium/large presentation detents on iOS 16+, no-op on iOS 15.
+private struct EmojiPickerSheetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.medium, .large])
+        } else {
+            content
+        }
+    }
+}
+
 struct ReactionsSettingsView: View {
     @ObservedObject var settings: UserSettingsStore
     let damus_state: DamusState
@@ -33,7 +46,7 @@ struct ReactionsSettingsView: View {
             NavigationView {
                 EmojiPickerView(selectedEmoji: $selectedEmoji, emojiProvider: damus_state.emoji_provider)
             }
-            .presentationDetents([.medium, .large])
+            .modifier(EmojiPickerSheetModifier())
         }
         .onChange(of: selectedEmoji) { newEmoji in
             guard let newEmoji else {

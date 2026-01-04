@@ -7,6 +7,21 @@
 
 import SwiftUI
 
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier that applies presentationDetents and drag indicator on iOS 16+, with no-op fallback for iOS 15.
+private struct AddRelaySheetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
+        }
+    }
+}
+
 enum RelayTab: Int, CaseIterable{
     case myRelays = 0
     case recommended
@@ -77,8 +92,7 @@ struct RelayConfigView: View {
         .navigationBarItems(leading: BackNav())
         .sheet(isPresented: $show_add_relay, onDismiss: { self.show_add_relay = false }) {
             AddRelayView(state: state)
-                .presentationDetents([.height(300)])
-                .presentationDragIndicator(.visible)
+                .modifier(AddRelaySheetModifier())
         }
         .toolbar {
             if state.keypair.privkey != nil && selectedTab == 0 {

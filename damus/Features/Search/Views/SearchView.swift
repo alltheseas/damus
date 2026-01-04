@@ -20,6 +20,11 @@ struct SearchView: View {
 
     let height: CGFloat = 250.0
 
+    /// Returns the current hashtag being searched, if any.
+    private var currentHashtag: String? {
+        search.search.hashtag?.first
+    }
+
     var body: some View {
         TimelineView(events: search.events, loading: $search.loading, damus: appstate, show_friend_icon: true, filter: content_filter) {
             ZStack(alignment: .leading) {
@@ -55,41 +60,49 @@ struct SearchView: View {
             }
         }
         .toolbar {
-            if let hashtag = search.search.hashtag?.first {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        if is_hashtag_muted {
-                            Button {
-                                guard
-                                    let full_keypair = appstate.keypair.to_full(),
-                                    let existing_mutelist = appstate.mutelist_manager.event,
-                                    let mutelist = remove_from_mutelist(keypair: full_keypair, prev: existing_mutelist, to_remove: .hashtag(Hashtag(hashtag: hashtag), nil))
-                                else {
-                                    return
-                                }
-
-                                appstate.mutelist_manager.set_mutelist(mutelist)
-                                Task { await appstate.nostrNetwork.postbox.send(mutelist) }
-                            } label: {
-                                Text("Unmute Hashtag", comment: "Label represnting a button that the user can tap to unmute a given hashtag so they start seeing it in their feed again.")
-                            }
-                        } else {
-                            MuteDurationMenu { duration in
-                                mute_hashtag(hashtag_string: hashtag, expiration_time: duration?.date_from_now)
-                            } label: {
-                                Text("Mute Hashtag", comment: "Label represnting a button that the user can tap to mute a given hashtag so they don't see it in their feed anymore.")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                    }
-                }
+            ToolbarItem(placement: .topBarTrailing) {
+                hashtagMenuButton
             }
         }
         .onAppear {
             if let hashtag_string = search.search.hashtag?.first {
                 is_hashtag_muted = (appstate.mutelist_manager.event?.mute_list ?? []).contains(MuteItem.hashtag(Hashtag(hashtag: hashtag_string), nil))
             }
+        }
+    }
+
+    /// Toolbar menu button for hashtag mute/unmute actions. Returns empty view if no hashtag search.
+    @ViewBuilder
+    private var hashtagMenuButton: some View {
+        if let hashtag = currentHashtag {
+            Menu {
+                if is_hashtag_muted {
+                    Button {
+                        guard
+                            let full_keypair = appstate.keypair.to_full(),
+                            let existing_mutelist = appstate.mutelist_manager.event,
+                            let mutelist = remove_from_mutelist(keypair: full_keypair, prev: existing_mutelist, to_remove: .hashtag(Hashtag(hashtag: hashtag), nil))
+                        else {
+                            return
+                        }
+
+                        appstate.mutelist_manager.set_mutelist(mutelist)
+                        Task { await appstate.nostrNetwork.postbox.send(mutelist) }
+                    } label: {
+                        Text("Unmute Hashtag", comment: "Label represnting a button that the user can tap to unmute a given hashtag so they start seeing it in their feed again.")
+                    }
+                } else {
+                    MuteDurationMenu { duration in
+                        mute_hashtag(hashtag_string: hashtag, expiration_time: duration?.date_from_now)
+                    } label: {
+                        Text("Mute Hashtag", comment: "Label represnting a button that the user can tap to mute a given hashtag so they don't see it in their feed anymore.")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+        } else {
+            EmptyView()
         }
     }
 

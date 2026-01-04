@@ -12,6 +12,45 @@ import EmojiPicker
 import TipKit
 import NavigationBackport
 
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier that shows/hides toolbar on iOS 16+, no-op on iOS 15.
+private struct ConditionalToolbarVisibilityModifier: ViewModifier {
+    let showToolbar: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.toolbar(showToolbar ? .visible : .hidden)
+        } else {
+            content
+        }
+    }
+}
+
+/// ViewModifier that applies presentationDragIndicator on iOS 16+, no-op on iOS 15.
+private struct VisibleDragIndicatorModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDragIndicator(.visible)
+        } else {
+            content
+        }
+    }
+}
+
+/// ViewModifier that applies presentationDetents with height and drag indicator on iOS 16+, no-op on iOS 15.
+private struct FilterSheetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.height(550)])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
+        }
+    }
+}
+
 struct ZapSheet {
     let target: ZapTarget
     let lnurl: String
@@ -187,7 +226,7 @@ struct ContentView: View {
         .background(DamusColors.adaptableWhite)
         .edgesIgnoringSafeArea(selected_timeline != .home ? [] : [.top, .bottom])
         .navigationBarTitle(timeline_name(selected_timeline), displayMode: .inline)
-        .toolbar(selected_timeline != .home ? .visible : .hidden)
+        .modifier(ConditionalToolbarVisibilityModifier(showToolbar: selected_timeline != .home))
         .toolbar {
             ToolbarItem(placement: .principal) {
                 VStack {
@@ -328,7 +367,7 @@ struct ContentView: View {
                 PostView(action: action, damus_state: damus_state!)
             case .user_status:
                 UserStatusSheet(damus_state: damus_state!, postbox: damus_state!.nostrNetwork.postbox, keypair: damus_state!.keypair, status: damus_state!.profiles.profile_data(damus_state!.pubkey).status)
-                    .presentationDragIndicator(.visible)
+                    .modifier(VisibleDragIndicatorModifier())
             case .event:
                 EventDetailView()
             case .profile_action(let pubkey):
@@ -340,8 +379,7 @@ struct ContentView: View {
             case .filter:
                 let timeline = selected_timeline
                 RelayFilterView(state: damus_state!, timeline: timeline)
-                    .presentationDetents([.height(550)])
-                    .presentationDragIndicator(.visible)
+                    .modifier(FilterSheetModifier())
             case .onboardingSuggestions:
                 if let model = try? SuggestedUsersViewModel(damus_state: damus_state!) {
                     OnboardingSuggestionsView(model: model)
