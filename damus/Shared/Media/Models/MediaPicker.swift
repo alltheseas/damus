@@ -68,7 +68,15 @@ struct MediaPicker: UIViewControllerRepresentable {
                             // Load the data for the GIF image
                             // - Don't load it as an UIImage since that can only get exported into JPEG/PNG
                             // - Don't load it as a file representation because it gets deleted before the upload can occur
-                            _ = result.itemProvider.loadDataRepresentation(for: .gif, completionHandler: { imageData, error in
+                            // Load GIF data using iOS version-appropriate API
+                            let loadGifData: (@escaping (Data?, Error?) -> Void) -> Void = { completion in
+                                if #available(iOS 16.0, *) {
+                                    _ = result.itemProvider.loadDataRepresentation(for: .gif, completionHandler: completion)
+                                } else {
+                                    result.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.gif.identifier, completionHandler: completion)
+                                }
+                            }
+                            loadGifData { imageData, error in
                                 guard let imageData else { return }
                                 let destinationURL = generateUniqueTemporaryMediaURL(fileExtension: "gif")
                                 do {
@@ -80,7 +88,7 @@ struct MediaPicker: UIViewControllerRepresentable {
                                 catch {
                                     Log.error("Failed to write GIF image data from Photo picker into a local copy", for: .image_uploading)
                                 }
-                            })
+                            }
                         }
                         else if canGetSourceTypeFromUrl(url: url) {
                             // Media was not taken from camera

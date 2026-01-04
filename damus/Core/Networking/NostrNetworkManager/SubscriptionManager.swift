@@ -35,8 +35,8 @@ extension NostrNetworkManager {
         // MARK: - Subscribing and Streaming data from Nostr
         
         /// Streams notes until the EOSE signal
-        func streamExistingEvents(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, timeout: Duration? = nil, streamMode: StreamMode? = nil, id: UUID? = nil) -> AsyncStream<NdbNoteLender> {
-            let timeout = timeout ?? .seconds(10)
+        func streamExistingEvents(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, timeout: TimeInterval? = nil, streamMode: StreamMode? = nil, id: UUID? = nil) -> AsyncStream<NdbNoteLender> {
+            let timeout = timeout ?? 10.0
             return AsyncStream<NdbNoteLender> { continuation in
                 let streamingTask = Task {
                     outerLoop: for await item in self.advancedStream(filters: filters, to: desiredRelays, timeout: timeout, streamMode: streamMode, id: id) {
@@ -63,7 +63,7 @@ extension NostrNetworkManager {
         /// Subscribes to data from user's relays, for a maximum period of time — after which the stream will end.
         ///
         /// This is useful when waiting for some specific data from Nostr, but not indefinitely.
-        func timedStream(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, timeout: Duration, streamMode: StreamMode? = nil, id: UUID? = nil) -> AsyncStream<NdbNoteLender> {
+        func timedStream(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, timeout: TimeInterval, streamMode: StreamMode? = nil, id: UUID? = nil) -> AsyncStream<NdbNoteLender> {
             return AsyncStream<NdbNoteLender> { continuation in
                 let streamingTask = Task {
                     for await item in self.advancedStream(filters: filters, to: desiredRelays, timeout: timeout, streamMode: streamMode, id: id) {
@@ -110,7 +110,7 @@ extension NostrNetworkManager {
             }
         }
         
-        func advancedStream(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, timeout: Duration? = nil, streamMode: StreamMode? = nil, id: UUID? = nil) -> AsyncStream<StreamItem> {
+        func advancedStream(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, timeout: TimeInterval? = nil, streamMode: StreamMode? = nil, id: UUID? = nil) -> AsyncStream<StreamItem> {
             let id = id ?? UUID()
             let streamMode = streamMode ?? defaultStreamMode()
             return AsyncStream<StreamItem> { continuation in
@@ -356,7 +356,7 @@ extension NostrNetworkManager {
         // MARK: - Finding specific data from Nostr
         
         /// Finds a non-replaceable event based on a note ID
-        func lookup(noteId: NoteId, to targetRelays: [RelayURL]? = nil, timeout: Duration? = nil) async throws -> NdbNoteLender? {
+        func lookup(noteId: NoteId, to targetRelays: [RelayURL]? = nil, timeout: TimeInterval? = nil) async throws -> NdbNoteLender? {
             let filter = NostrFilter(ids: [noteId], limit: 1)
             
             // Since note ids point to immutable objects, we can do a simple ndb lookup first
@@ -377,7 +377,7 @@ extension NostrNetworkManager {
             return nil
         }
         
-        func query(filters: [NostrFilter], to: [RelayURL]? = nil, timeout: Duration? = nil) async -> [NostrEvent] {
+        func query(filters: [NostrFilter], to: [RelayURL]? = nil, timeout: TimeInterval? = nil) async -> [NostrEvent] {
             var events: [NostrEvent] = []
             for await noteLender in self.streamExistingEvents(filters: filters, to: to, timeout: timeout) {
                 noteLender.justUseACopy({ events.append($0) })
@@ -389,7 +389,7 @@ extension NostrNetworkManager {
         ///
         /// - Parameters:
         ///   - naddr: the `naddr` address
-        func lookup(naddr: NAddr, to targetRelays: [RelayURL]? = nil, timeout: Duration? = nil) async -> NostrEvent? {
+        func lookup(naddr: NAddr, to targetRelays: [RelayURL]? = nil, timeout: TimeInterval? = nil) async -> NostrEvent? {
             var nostrKinds: [NostrKind]? = NostrKind(rawValue: naddr.kind).map { [$0] }
 
             let filter = NostrFilter(kinds: nostrKinds, authors: [naddr.author])

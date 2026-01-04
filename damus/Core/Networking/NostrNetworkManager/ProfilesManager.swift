@@ -39,7 +39,7 @@ extension NostrNetworkManager {
             self.subscriptionSwitcherTask?.cancel()
             self.subscriptionSwitcherTask = Task {
                 while true {
-                    try await Task.sleep(for: .seconds(1))
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
                     try Task.checkCancellation()
                     if subscriptionNeedsUpdate {
                         try Task.checkCancellation()

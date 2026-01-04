@@ -15,18 +15,19 @@ fileprivate let BOOTSTRAP_RELAYS = [
     "wss://nos.lol",
 ]
 
-fileprivate let REGION_SPECIFIC_BOOTSTRAP_RELAYS: [Locale.Region: [String]] = [
-    Locale.Region.japan: [
+/// Region-specific bootstrap relays keyed by ISO region code (e.g., "JP", "TH", "DE").
+fileprivate let REGION_SPECIFIC_BOOTSTRAP_RELAYS: [String: [String]] = [
+    "JP": [  // Japan
         "wss://relay-jp.nostr.wirednet.jp",
         "wss://yabu.me",
         "wss://r.kojira.io",
     ],
-    Locale.Region.thailand: [
+    "TH": [  // Thailand
         "wss://relay.siamstr.com",
         "wss://relay.zerosatoshi.xyz",
         "wss://th2.nostr.earnkrub.xyz",
     ],
-    Locale.Region.germany: [
+    "DE": [  // Germany
         "wss://nostr.einundzwanzig.space",
         "wss://nostr.cercatrova.me",
         "wss://nostr.bitcoinplebs.de",
@@ -63,24 +64,20 @@ func load_bootstrap_relays(pubkey: Pubkey) -> [RelayURL] {
     return loaded_relays
 }
 
-/// Returns the user's region, compatible with iOS 15+.
+/// Returns the user's region code (e.g., "US", "JP", "DE"), compatible with iOS 15+.
 /// Uses Locale.current.region on iOS 16+ and falls back to regionCode on iOS 15.
-private func getCurrentRegion() -> Locale.Region? {
+private func getCurrentRegionCode() -> String? {
     if #available(iOS 16.0, *) {
-        return Locale.current.region
+        return Locale.current.region?.identifier
     } else {
-        // On iOS 15, use regionCode and convert to Region
-        guard let regionCode = Locale.current.regionCode else {
-            return nil
-        }
-        return Locale.Region(regionCode)
+        return Locale.current.regionCode
     }
 }
 
 func get_default_bootstrap_relays() -> [RelayURL] {
     var default_bootstrap_relays: [RelayURL] = BOOTSTRAP_RELAYS.compactMap({ RelayURL($0) })
 
-    if let user_region = getCurrentRegion(), let regional_bootstrap_relays = REGION_SPECIFIC_BOOTSTRAP_RELAYS[user_region] {
+    if let regionCode = getCurrentRegionCode(), let regional_bootstrap_relays = REGION_SPECIFIC_BOOTSTRAP_RELAYS[regionCode] {
         default_bootstrap_relays.append(contentsOf: regional_bootstrap_relays.compactMap({ RelayURL($0) }))
     }
 
