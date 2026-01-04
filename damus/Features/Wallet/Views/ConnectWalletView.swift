@@ -249,7 +249,7 @@ struct ConnectWalletView: View {
             .frame(maxWidth: .infinity)
         }
         .padding()
-        .presentationDetents([.height(300)])
+        .presentationDetentsHeightCompat(300)
     }
     
     func oneClickSetup() {
@@ -386,13 +386,27 @@ struct ConnectWalletView_Previews: PreviewProvider {
         ConnectWalletView.AreYouSure(nwc: get_test_nwc(), show_introduction: .constant(false), model: WalletModel(settings: test_damus_state.settings))
             .previewDisplayName("Are you sure screen")
     }
-    
+
     static func get_test_nwc() -> WalletConnectURL {
         let pk = "9d088f4760422443d4699b485e2ac66e565a2f5da1198c55ddc5679458e3f67a"
         let sec = "ff2eefd57196d42089e1b42acc39916d7ecac52e0625bd70597bbd5be14aff18"
         let relay = "wss://relay.getalby.com/v1"
         let str = "nostrwalletconnect://\(pk)?relay=\(relay)&secret=\(sec)"
-        
+
         return WalletConnectURL(str: str)!
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .presentationDetents([.height(height)]) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func presentationDetentsHeightCompat(_ height: CGFloat) -> some View {
+        if #available(iOS 16.0, *) {
+            self.presentationDetents([.height(height)])
+        } else {
+            self
+        }
     }
 }

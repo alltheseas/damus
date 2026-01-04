@@ -8,7 +8,7 @@
 import SwiftUI
 import CodeScanner
 
-fileprivate let SEND_PAYMENT_TIMEOUT: Duration = .seconds(10)
+fileprivate let SEND_PAYMENT_TIMEOUT: TimeInterval = 10.0
 
 /// A view that allows a user to pay a lightning invoice
 struct SendPaymentView: View {

@@ -189,12 +189,14 @@ struct PostView: View {
     }
     
     var PostButton: some View {
-        Button(NSLocalizedString("Post", comment: "Button to post a note.")) {
+        Button(action: {
             Task { await self.send_post() }
+        }) {
+            Text(NSLocalizedString("Post", comment: "Button to post a note."))
+                .fontWeight(.bold)
         }
         .disabled(posting_disabled)
         .opacity(posting_disabled ? 0.5 : 1.0)
-        .bold()
         .buttonStyle(GradientButtonStyle(padding: 10))
         
     }

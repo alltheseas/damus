@@ -23,10 +23,10 @@ struct BalanceView: View {
                 // Make sure we do not show any numeric value to the user when still loading (or when failed to load)
                 // This is important because if we show a numeric value like "zero" when things are not loaded properly, we risk scaring the user into thinking that they have lost funds.
                 Text(verbatim: "??")
+                    .fontWeight(.heavy)
                     .lineLimit(1)
                     .minimumScaleFactor(0.70)
                     .font(.veryVeryLargeTitle)
-                    .fontWeight(.heavy)
                     .foregroundStyle(PinkGradient)
                     .redacted(reason: .placeholder)
                     .shimmer(true)
@@ -43,19 +43,19 @@ struct NumericalBalanceView: View {
         Group {
             if hide_balance {
                 Text(verbatim: "*****")
+                    .fontWeight(.heavy)
                     .lineLimit(1)
                     .minimumScaleFactor(0.70)
                     .font(.veryVeryLargeTitle)
-                    .fontWeight(.heavy)
                     .foregroundStyle(PinkGradient)
 
             } else {
                 HStack {
                     Text(verbatim: text)
+                        .fontWeight(.heavy)
                         .lineLimit(1)
                         .minimumScaleFactor(0.70)
                         .font(.veryVeryLargeTitle)
-                        .fontWeight(.heavy)
                         .foregroundStyle(PinkGradient)
 
                     HStack(alignment: .top) {

@@ -26,8 +26,8 @@ struct CoinosButton: View {
                     .frame(width: 35, height: 35)
                 
                 Text("Connect to Coinos", comment:  "Button to attach a Coinos Wallet, a service that provides a Lightning wallet for zapping sats. Coinos is the name of the service and should not be translated.")
-                    .padding()
                     .bold()
+                    .padding()
             }
             .frame(minWidth: 300, maxWidth: .infinity, alignment: .center)
             .foregroundColor(DamusColors.black)

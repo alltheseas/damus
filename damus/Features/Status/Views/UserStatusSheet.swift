@@ -136,7 +136,7 @@ struct UserStatusSheet: View {
                     
                     VStack(spacing: 0) {
                         HStack {
-                            TextField(NSLocalizedString("Staying humble...", comment: "Placeholder as an example of what the user could set as their profile status."), text: status_binding, axis: .vertical)
+                            StatusTextField(placeholder: NSLocalizedString("Staying humble...", comment: "Placeholder as an example of what the user could set as their profile status."), text: status_binding)
                                 .autocorrectionDisabled(true)
                                 .textInputAutocapitalization(.never)
                                 .lineLimit(3)
@@ -216,5 +216,21 @@ struct UserStatusSheet: View {
 struct UserStatusSheet_Previews: PreviewProvider {
     static var previews: some View {
         UserStatusSheet(damus_state: test_damus_state, postbox: test_damus_state.nostrNetwork.postbox, keypair: test_keypair, status: .init())
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+/// A TextField that supports vertical axis (multi-line) on iOS 16+ and falls back to standard TextField on iOS 15.
+private struct StatusTextField: View {
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        if #available(iOS 16.0, *) {
+            TextField(placeholder, text: $text, axis: .vertical)
+        } else {
+            TextField(placeholder, text: $text)
+        }
     }
 }

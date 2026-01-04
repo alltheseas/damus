@@ -88,7 +88,7 @@ struct LiveStreamView: View {
                 .highPriorityGesture(dragGesture, including: .all)
 
             LiveChatHomeView(state: state, event: event, model: LiveChatModel(damus_state: state, root: event.event.pubkey.hex(), dtag: event.uuid ?? ""))
-                .scrollDismissesKeyboard(.immediately)
+                .scrollDismissesKeyboardImmediatelyCompat()
         }
         .offset(y: dragOffset.height)
         .opacity(isDragging ? Double(1 - min(abs(dragOffset.height) / 250, 0.5)) : 1.0)
@@ -132,7 +132,7 @@ struct LiveStreamView: View {
             if let title = event.title {
                 Text(title)
                     .fixedSize(horizontal: false, vertical: true)
-                    .fontWeight(.bold)
+                    .font(.body.bold())
                     .padding(.horizontal, 5)
             }
 
@@ -146,5 +146,19 @@ struct LiveStreamView_Previews: PreviewProvider {
     static var previews: some View {
         LiveStreamView(state: test_damus_state, ev: test_live_event, model: LiveEventModel(damus_state: test_damus_state))
             .environmentObject(OrientationTracker())
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .scrollDismissesKeyboard(.immediately) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func scrollDismissesKeyboardImmediatelyCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollDismissesKeyboard(.immediately)
+        } else {
+            self
+        }
     }
 }

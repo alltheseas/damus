@@ -152,7 +152,7 @@ struct CustomizeZapView: View {
     
     var ZapReply: some View {
         HStack {
-            TextField(NSLocalizedString("Send a message with your zap...", comment: "Placeholder text for a comment to send as part of a zap to the user."), text: $model.comment, axis: .vertical)
+            CompatibleTextField(placeholder: NSLocalizedString("Send a message with your zap...", comment: "Placeholder text for a comment to send as part of a zap to the user."), text: $model.comment)
                 .focused($focusedTextField, equals: ZapFields.comment)
                 .task {
                             self.focusedTextField = .comment
@@ -365,6 +365,22 @@ extension View {
     func hideKeyboard() {
         let resign = #selector(UIResponder.resignFirstResponder)
         this_app.sendAction(resign, to: nil, from: nil, for: nil)
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+/// A TextField that supports vertical axis (multi-line) on iOS 16+ and falls back to standard TextField on iOS 15.
+private struct CompatibleTextField: View {
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        if #available(iOS 16.0, *) {
+            TextField(placeholder, text: $text, axis: .vertical)
+        } else {
+            TextField(placeholder, text: $text)
+        }
     }
 }
 

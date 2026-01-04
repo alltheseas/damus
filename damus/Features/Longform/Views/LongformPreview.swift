@@ -153,7 +153,7 @@ struct LongformPreviewBody: View {
                         }
                     }
                 }
-                .scrollIndicators(.hidden)
+                .scrollIndicatorsHiddenCompat()
                 .padding(10)
             }
 
@@ -205,5 +205,19 @@ struct LongformPreview_Previews: PreviewProvider {
             LongformPreview(state: test_damus_state, ev: test_longform_event.event, options: [.wide])
         }
         .frame(height: 400)
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .scrollIndicators(.hidden) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func scrollIndicatorsHiddenCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollIndicators(.hidden)
+        } else {
+            self
+        }
     }
 }

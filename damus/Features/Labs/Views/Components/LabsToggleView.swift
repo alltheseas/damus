@@ -18,9 +18,8 @@ struct LabsToggleView: View {
             HStack {
                 Toggle(toggleName, systemImage: systemImage, isOn: $isOn)
                     .toggleStyle(SwitchToggleStyle(tint: .accentColor))
-                    .font(.title2)
+                    .font(.title2.bold())
                     .foregroundColor(.white)
-                    .fontWeight(.bold)
             }
             .padding(15)
             .background(DamusColors.black)

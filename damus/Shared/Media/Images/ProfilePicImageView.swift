@@ -114,14 +114,19 @@ struct ProfilePicImageView: View {
                     HStack {
                         NavDismissBarView(navDismissBarContainer: .profilePicImageView)
                         if let image = image {
-                            ShareLink(item: Image(uiImage: image),
-                                      preview: SharePreview(NSLocalizedString("Damus Profile", comment: "Label for the preview of the profile picture"), image: Image(uiImage: image))) {
-                                Image(systemName: "ellipsis")
-                                    .frame(width: 33, height: 33)
-                                    .background(.regularMaterial)
-                                    .clipShape(Circle())
+                            if #available(iOS 16.0, *) {
+                                ShareLink(item: Image(uiImage: image),
+                                          preview: SharePreview(NSLocalizedString("Damus Profile", comment: "Label for the preview of the profile picture"), image: Image(uiImage: image))) {
+                                    Image(systemName: "ellipsis")
+                                        .frame(width: 33, height: 33)
+                                        .background(.regularMaterial)
+                                        .clipShape(Circle())
+                                }
+                                .padding(20)
+                            } else {
+                                // ShareLink not available on iOS 15
+                                EmptyView()
                             }
-                            .padding(20)
                         }
                     }
                 }

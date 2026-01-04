@@ -7,7 +7,9 @@
 
 import SwiftUI
 import Kingfisher
+#if canImport(SwiftyCrop)
 import SwiftyCrop
+#endif
 
 // MARK: - Main view
 
@@ -103,8 +105,7 @@ struct EditPictureControl: View {
             ImageURLSelector(callback: { url in
                 self.model.choose_url(url)
             }, cancel: { self.model.cancel() })
-            .presentationDetents([.height(300)])
-            .presentationDragIndicator(.visible)
+            .modifier(EditPictureSheetModifier())
         }
         .sheet(item: self.model.error_message, onDismiss: { self.model.cancel() }, content: { error in
             Text(error.rawValue)
@@ -222,9 +223,65 @@ struct EditPictureControl: View {
     }
     
     
-    var crop_configuration: SwiftyCropConfiguration = SwiftyCropConfiguration(rotateImage: false, zoomSensitivity: 5)
-    
+    @ViewBuilder
     var image_cropper: some View {
+        if #available(iOS 16.0, *) {
+            iOS16ImageCropper(model: model)
+        } else {
+            // On iOS 15, skip cropping and upload directly
+            iOS15ImageCropperFallback(model: model)
+        }
+    }
+
+    // MARK: Accessibility helpers
+
+    var accessibility_label: String {
+        switch self.model.context {
+        case .normal:
+            return NSLocalizedString("Edit Image", comment: "Accessibility label for a button that edits an image")
+        case .profile_picture:
+            return NSLocalizedString("Edit profile picture", comment: "Accessibility label for a button that edits a profile picture")
+        }
+    }
+
+    var accessibility_hint: String {
+        return NSLocalizedString("Shows options to edit the image", comment: "Accessibility hint for a button that edits an image")
+    }
+
+    var accessibility_value: String? {
+        guard style.first_time_setup else {
+            return nil  // Image is shown outside this control and will have its accessibility defined outside this view.
+        }
+
+        guard model.current_image_url != nil else {
+            switch self.model.context {
+            case .normal:
+                return NSLocalizedString("No image is currently setup", comment: "Accessibility value on image control")
+            case .profile_picture:
+                return NSLocalizedString("No profile picture is currently setup", comment: "Accessibility value on profile picture image control")
+            }
+        }
+
+        switch self.model.context {
+        case .normal:
+            return NSLocalizedString("Image is setup", comment: "Accessibility value on image control")
+        case .profile_picture:
+            return NSLocalizedString("Profile picture is setup", comment: "Accessibility value on profile picture image control")
+        }
+    }
+}
+
+// MARK: - iOS 16+ Image Cropper with SwiftyCrop
+
+@available(iOS 16.0, *)
+private struct iOS16ImageCropper<T: ImageUploadModelProtocol>: View {
+    @ObservedObject var model: EditPictureControlViewModel<T>
+
+    var crop_configuration: SwiftyCropConfiguration {
+        SwiftyCropConfiguration(rotateImage: false, zoomSensitivity: 5)
+    }
+
+    var body: some View {
         Group {
             if case .cropping(let preUploadedMedia) = model.state {
                 switch preUploadedMedia {
@@ -244,20 +301,18 @@ struct EditPictureControl: View {
                         ) { croppedImage in
                             self.model.finished_cropping(croppedImage: croppedImage)
                         }
-                    }
-                    else {
-                        self.cropping_error_screen  // Cannot load image
+                    } else {
+                        cropping_error_screen
                     }
                 case .unprocessed_video(_), .processed_video(_):
-                    self.cropping_error_screen  // No support for video profile pictures
+                    cropping_error_screen
                 }
-            }
-            else {
-                self.cropping_error_screen  // Some form of internal logical inconsistency
+            } else {
+                cropping_error_screen
             }
         }
     }
-    
+
     var cropping_error_screen: some View {
         VStack(spacing: 5) {
             Text("Error while cropping image", comment: "Heading on cropping error page")
@@ -268,48 +323,52 @@ struct EditPictureControl: View {
             })
         }
     }
-    
-    
-    // MARK: Accesibility helpers
-    
-    var accessibility_label: String {
-        switch self.model.context {
-        case .normal:
-            return NSLocalizedString("Edit Image", comment: "Accessibility label for a button that edits an image")
-        case .profile_picture:
-            return NSLocalizedString("Edit profile picture", comment: "Accessibility label for a button that edits a profile picture")
-        }
-    }
-    
-    var accessibility_hint: String {
-        return NSLocalizedString("Shows options to edit the image", comment: "Accessibility hint for a button that edits an image")
-    }
-    
-    var accessibility_value: String? {
-        if style.first_time_setup {
-            if model.current_image_url != nil {
-                switch self.model.context {
-                case .normal:
-                    return NSLocalizedString("Image is setup", comment: "Accessibility value on image control")
-                case .profile_picture:
-                    return NSLocalizedString("Profile picture is setup", comment: "Accessibility value on profile picture image control")
+}
+
+// MARK: - iOS 15 Fallback (no cropping, resize only)
+
+private struct iOS15ImageCropperFallback<T: ImageUploadModelProtocol>: View {
+    @ObservedObject var model: EditPictureControlViewModel<T>
+
+    var body: some View {
+        Group {
+            if case .cropping(let preUploadedMedia) = model.state {
+                // On iOS 15, we skip the interactive crop and just resize
+                Color.clear.onAppear {
+                    handleCroppingFallback(preUploadedMedia)
                 }
-            }
-            else {
-                switch self.model.context {
-                case .normal:
-                    return NSLocalizedString("No image is currently setup", comment: "Accessibility value on image control")
-                case .profile_picture:
-                    return NSLocalizedString("No profile picture is currently setup", comment: "Accessibility value on profile picture image control")
-                }
+            } else {
+                cropping_error_screen
             }
         }
-        else {
-            return nil  // Image is shown outside this control and will have its accessibility defined outside this view.
+    }
+
+    private func handleCroppingFallback(_ preUploadedMedia: PreUploadedMedia) {
+        switch preUploadedMedia {
+        case .uiimage(let image):
+            model.finished_cropping(croppedImage: image)
+        case .unprocessed_image(let url), .processed_image(let url):
+            guard let image = try? UIImage.from(url: url) else {
+                model.cancel()
+                return
+            }
+            model.finished_cropping(croppedImage: image)
+        case .unprocessed_video(_), .processed_video(_):
+            model.cancel()
+        }
+    }
+
+    var cropping_error_screen: some View {
+        VStack(spacing: 5) {
+            Text("Error while cropping image", comment: "Heading on cropping error page")
+                .font(.headline)
+            Text("Sorry, but for some reason there has been an issue while trying to crop this image. Please try again later. If the error persists, please contact [Damus support](mailto:support@damus.io)", comment: "Cropping error message")
+            Button(action: { self.model.cancel() }, label: {
+                Text("Dismiss", comment: "Button to dismiss error")
+            })
         }
     }
 }
-
 
 // MARK: - View model
 
@@ -740,6 +799,19 @@ fileprivate extension View {
     func maybeAccessibilityValue(_ value: String?) -> some View {
         Group {
             if let value { self.accessibilityValue(value) } else { self }
+        }
+    }
+}
+
+/// ViewModifier providing iOS 15 compatibility for presentation modifiers.
+private struct EditPictureSheetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
         }
     }
 }

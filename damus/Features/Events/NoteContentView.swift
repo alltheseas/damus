@@ -497,19 +497,21 @@ struct BlurOverlayView: View {
             
             VStack(alignment: .center) {
                 Image(systemName: "eye.slash")
+                    .font(.body.bold())
                     .foregroundStyle(.white)
-                    .bold()
                     .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
                 Text(NSLocalizedString("Media from someone you don't follow", comment: "Label on the image blur mask"))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(Color.white)
                     .font(.title2)
                     .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
-                Button(NSLocalizedString("Tap to load", comment: "Label for button that allows user to dismiss media content warning and unblur the image")) {
+                Button(action: {
                     blur_images = false
+                }) {
+                    Text(NSLocalizedString("Tap to load", comment: "Label for button that allows user to dismiss media content warning and unblur the image"))
+                        .fontWeight(.bold)
                 }
                 .buttonStyle(.bordered)
-                .fontWeight(.bold)
                 .foregroundStyle(.white)
                 .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
                 
