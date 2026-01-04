@@ -40,7 +40,7 @@ struct ZapExplainerView: View {
                     }
                     .padding(5)
                 }
-                .scrollIndicators(.hidden)
+                .scrollIndicatorsHiddenCompat()
                 
                 Button(action: {
                     show_introduction = false
@@ -67,7 +67,7 @@ struct ZapExplainerView: View {
             .padding(.bottom)
             .padding(.horizontal)
         }
-        .scrollIndicators(.never)
+        .scrollIndicatorsHiddenCompat()
         .background(
             Image("eula-bg")
                 .resizable()
@@ -193,6 +193,20 @@ struct ZapExplainerView: View {
                 .stroke(DamusColors.neutral1, lineWidth: 2)
         )
         .padding(.top, 20)
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .scrollIndicators(.hidden) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func scrollIndicatorsHiddenCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollIndicators(.hidden)
+        } else {
+            self
+        }
     }
 }
 

@@ -35,15 +35,7 @@ struct UserStatusView: View {
                 openURL(url)
             }
         }
-        .contextMenu(
-            menuItems: {
-                if let url = st.url {
-                    Button(url.absoluteString, action: { openURL(url) }) }
-            }, preview: {
-                if let url = st.url {
-                    URLPreview(url: url)
-                }
-            })
+        .modifier(ContextMenuModifier(url: st.url, openURL: openURL))
     }
 
     var body: some View {
@@ -69,6 +61,36 @@ struct UserStatusView: View {
         func updateUIView(_ wkView: WKWebView, context: Context) {
             let request = URLRequest(url: url)
             wkView.load(request)
+        }
+    }
+
+    /// ViewModifier that applies context menu with preview on iOS 16+,
+    /// or simple context menu on iOS 15.
+    struct ContextMenuModifier: ViewModifier {
+        let url: URL?
+        let openURL: OpenURLAction
+
+        func body(content: Content) -> some View {
+            if #available(iOS 16.0, *) {
+                content.contextMenu(
+                    menuItems: {
+                        if let url = url {
+                            Button(url.absoluteString, action: { openURL(url) })
+                        }
+                    },
+                    preview: {
+                        if let url = url {
+                            URLPreview(url: url)
+                        }
+                    }
+                )
+            } else {
+                content.contextMenu {
+                    if let url = url {
+                        Button(url.absoluteString, action: { openURL(url) })
+                    }
+                }
+            }
         }
     }
 }

@@ -8,6 +8,20 @@
 import SwiftUI
 import TipKit
 
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies menuOrder(.fixed) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func menuOrderFixedCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.menuOrder(.fixed)
+        } else {
+            self
+        }
+    }
+}
+
 struct PostingTimelineSwitcherView: View {
     let damusState: DamusState
     @Binding var timelineSource: TimelineSource
@@ -39,7 +53,7 @@ struct PostingTimelineSwitcherView: View {
             Color.clear
         }
         .frame(width: 50, height: 35)
-        .menuOrder(.fixed)
+        .menuOrderFixedCompat()
         .accessibilityLabel(NSLocalizedString("Timeline switcher, select \(TimelineSource.follows.description) or \(TimelineSource.favorites.description)", comment: "Accessibility label for the timeline switcher button at the topbar"))
     }
 

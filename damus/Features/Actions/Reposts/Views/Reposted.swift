@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import NavigationBackport
 
 struct Reposted: View {
     let damus: DamusState
@@ -37,7 +38,7 @@ struct Reposted: View {
                     }
             }
 
-            NavigationLink(value: Route.Reposts(reposts: .reposts(state: damus, target: target.id))) {
+            NBNavigationLink(value: Route.Reposts(reposts: .reposts(state: damus, target: target.id))) {
                 Text(people_reposted_text(profiles: damus.profiles, pubkey: pubkey, reposts: reposts))
                     .font(.subheadline)
                     .foregroundColor(.gray)

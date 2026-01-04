@@ -167,7 +167,7 @@ class WalletModel: ObservableObject {
     
     // MARK: - Easy request/response interface
     
-    func request(_ request: WalletConnect.Request, timeout: Duration = .seconds(10)) async throws(WalletRequestError) -> WalletConnect.Response.Result {
+    func request(_ request: WalletConnect.Request, timeout: TimeInterval = 10.0) async throws(WalletRequestError) -> WalletConnect.Response.Result {
         guard let nostrNetwork else { throw .notConnectedToTheNostrNetwork }
         guard let currentNwcUrl = self.connect_state.currentNwcUrl() else { throw .noConnectedWallet }
         guard let requestEvent = request.to_nostr_event(to_pk: currentNwcUrl.pubkey, keypair: currentNwcUrl.keypair) else { throw .errorFormattingRequest }
@@ -214,12 +214,12 @@ class WalletModel: ObservableObject {
     
     // MARK: - Async wallet response waiting mechanism
     
-    func waitForResponse(for requestId: NoteId, timeout: Duration = .seconds(10)) async throws -> WalletConnect.Response.Result {
+    func waitForResponse(for requestId: NoteId, timeout: TimeInterval = 10.0) async throws -> WalletConnect.Response.Result {
         return try await withCheckedThrowingContinuation({ continuation in
             self.continuations[requestId] = continuation
             
             let timeoutTask = Task {
-                try? await Task.sleep(for: timeout)
+                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                 self.resume(request: requestId, throwing: WaitError.timeout)    // Must resume the continuation exactly once even if there is no response
             }
         })

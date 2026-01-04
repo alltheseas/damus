@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import NavigationBackport
 
 struct MultiSearch {
     let text: String
@@ -52,7 +53,7 @@ struct InnerSearchResults: View {
     
     func HashtagSearch(_ ht: String) -> some View {
         let search_model = SearchModel(state: damus_state, search: .filter_hashtag([ht]))
-        return NavigationLink(value: Route.Search(search: search_model)) {
+        return NBNavigationLink(value: Route.Search(search: search_model)) {
             HStack {
                 Text("#\(ht)", comment: "Navigation link to search hashtag.")
             }
@@ -68,7 +69,7 @@ struct InnerSearchResults: View {
     }
     
     func TextSearch(_ txt: String) -> some View {
-        return NavigationLink(value: Route.NDBSearch(results: $results, query: txt)) {
+        return NBNavigationLink(value: Route.NDBSearch(results: $results, query: txt)) {
             HStack {
                 Text("Search word: \(txt)", comment: "Navigation link to search for a word.")
             }

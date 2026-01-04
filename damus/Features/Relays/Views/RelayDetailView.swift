@@ -68,7 +68,7 @@ struct RelayDetailView: View {
                 }
             }
         }
-        .scrollIndicators(.hidden)
+        .scrollIndicatorsHiddenCompat()
     }
     
     var RelayHeader: some View {
@@ -204,6 +204,20 @@ struct RelayDetailView: View {
         }
         catch {
             present_sheet(.error(error.humanReadableError))
+        }
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+private extension View {
+    /// Applies .scrollIndicators(.hidden) on iOS 16+, no-op on iOS 15.
+    @ViewBuilder
+    func scrollIndicatorsHiddenCompat() -> some View {
+        if #available(iOS 16.0, *) {
+            self.scrollIndicators(.hidden)
+        } else {
+            self
         }
     }
 }

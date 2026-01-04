@@ -35,7 +35,7 @@ struct HighlightLink: View {
 
     func get_url_icon() -> URL? {
         var icon = URL(string: url.absoluteString + "/favicon.ico")
-        if let url_host = url.host() {
+        if let url_host = url.host {
             icon = URL(string: "https://" + url_host + "/favicon.ico")
         }
         return icon

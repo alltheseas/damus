@@ -28,6 +28,7 @@ extension DamusPurpleView {
                 
                 VStack(alignment: .leading) {
                     Text("Purple", comment: "Subscription service name")
+                        .tracking(-2)
                         .font(.system(size: 60.0).weight(.bold))
                         .foregroundStyle(
                             LinearGradient(
@@ -37,7 +38,6 @@ extension DamusPurpleView {
                             )
                         )
                         .foregroundColor(.white)
-                        .tracking(-2)
                 }
             }
             .padding(.bottom, 30)

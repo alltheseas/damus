@@ -61,7 +61,7 @@ actor DatabaseSnapshotManager {
                 catch {
                     Log.error("Failed to create snapshot: %{public}@", for: .storage, error.localizedDescription)
                 }
-                try? await Task.sleep(for: .seconds(60 * 5), tolerance: .seconds(10))
+                try? await Task.sleep(nanoseconds: UInt64(60 * 5) * 1_000_000_000)
             }
         }
     }

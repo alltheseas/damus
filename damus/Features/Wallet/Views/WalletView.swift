@@ -7,6 +7,21 @@
 
 import SwiftUI
 
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier for large sheet with drag indicator on iOS 16+, no-op on iOS 15.
+private struct LargeSheetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDragIndicator(.visible)
+                .presentationDetents([.large])
+        } else {
+            content
+        }
+    }
+}
+
 let WALLET_WARNING_THRESHOLD: UInt64 = 100000
 
 struct WalletView: View {
@@ -46,8 +61,8 @@ struct WalletView: View {
                             settings.dismiss_wallet_high_balance_warning = true
                         }, label: {
                             Text("Dismiss", comment: "Button label to dismiss the safety reminder that the user's wallet has a high balance")
+                                .bold()
                         })
-                        .bold()
                         .foregroundStyle(.damusWarningTertiary)
                     }
                     .privacySensitive()
@@ -115,13 +130,11 @@ struct WalletView: View {
                         NWCSettings(damus_state: damus_state, nwc: nwc, model: model, settings: settings)
                             .padding(.top, 30)
                     }
-                    .presentationDragIndicator(.visible)
-                    .presentationDetents([.large])
+                    .modifier(LargeSheetModifier())
                 }
                 .sheet(isPresented: $show_send_sheet) {
                     SendPaymentView(damus_state: damus_state, model: model, nwc: nwc)
-                        .presentationDragIndicator(.visible)
-                        .presentationDetents([.large])
+                        .modifier(LargeSheetModifier())
                 }
         }
     }

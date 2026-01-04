@@ -394,7 +394,7 @@ struct LikeButton: View {
         .sheet(isPresented: $isReactionsVisible) {
             NavigationView {
                 EmojiPickerView(selectedEmoji: $selectedEmoji, emojiProvider: damus_state.emoji_provider)
-            }.presentationDetents([.medium, .large])
+            }.modifier(EventActionBarPresentationModifier())
         }
         .accessibilityLabel(NSLocalizedString("Like", comment: "Accessibility Label for Like button"))
         .rotationEffect(Angle(degrees: shouldAnimate ? rotationAngle : 0))
@@ -522,6 +522,20 @@ public extension SwipeAction where Label == Image, Background == Color {
         } background: { highlight in
             backgroundColor
                 .opacity(highlight ? highlightOpacity : 1)
+        }
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier providing iOS 15 compatibility for presentation modifiers.
+/// Applies presentationDetents on iOS 16+, no-op on iOS 15.
+private struct EventActionBarPresentationModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.medium, .large])
+        } else {
+            content
         }
     }
 }

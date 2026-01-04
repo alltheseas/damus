@@ -140,7 +140,7 @@ class DamusPurple: StoreObserverDelegate {
     
     @MainActor
     func fetch_uuid_for_account() async throws -> UUID {
-        let url = self.environment.api_base_url().appending(path: "/accounts/\(self.keypair.pubkey)/account-uuid")
+        let url = self.environment.api_base_url().appendingPathCompat("/accounts/\(self.keypair.pubkey)/account-uuid")
         let (data, response) = try await make_nip98_authenticated_request(
             method: .get,
             url: url,
@@ -227,8 +227,8 @@ class DamusPurple: StoreObserverDelegate {
 
     func translate(text: String, source source_language: String, target target_language: String) async throws -> String {
         var url = environment.api_base_url()
-        url.append(path: "/translate")
-        url.append(queryItems: [
+        url.appendPathCompat("/translate")
+        url.appendQueryItemsCompat([
             .init(name: "source", value: source_language),
             .init(name: "target", value: target_language),
             .init(name: "q", value: text)
@@ -257,7 +257,7 @@ class DamusPurple: StoreObserverDelegate {
     
     func verify_npub_for_checkout(checkout_id: String) async throws {
         var url = environment.api_base_url()
-        url.append(path: "/ln-checkout/\(checkout_id)/verify")
+        url.appendPathCompat("/ln-checkout/\(checkout_id)/verify")
         
         let (data, response) = try await make_nip98_authenticated_request(
             method: .put,
@@ -338,8 +338,8 @@ class DamusPurple: StoreObserverDelegate {
         guard let checkout_id = checkout?.id.uuidString.lowercased() else { throw PurpleError.error_processing_response }
         try await self.verify_npub_for_checkout(checkout_id: checkout_id)
         return self.environment.purple_landing_page_url()
-            .appendingPathComponent("checkout")
-            .appending(queryItems: [URLQueryItem(name: "id", value: checkout_id)])
+            .appendingPathCompat("/checkout")
+            .appendingQueryItemsCompat([URLQueryItem(name: "id", value: checkout_id)])
     }
     
     @MainActor
@@ -551,5 +551,39 @@ extension DamusPurple {
         func user_has_never_seen_the_onboarding_before() -> Bool {
             return onboarding_was_shown == false && account_existed_at_the_start == false
         }
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+fileprivate extension URL {
+    /// Appends a path component to the URL (iOS 15 compatible).
+    func appendingPathCompat(_ path: String) -> URL {
+        if #available(iOS 16.0, *) {
+            return self.appending(path: path)
+        } else {
+            return self.appendingPathComponent(path)
+        }
+    }
+
+    /// Returns a new URL with query items appended (iOS 15 compatible).
+    func appendingQueryItemsCompat(_ queryItems: [URLQueryItem]) -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else {
+            return self
+        }
+        var existingItems = components.queryItems ?? []
+        existingItems.append(contentsOf: queryItems)
+        components.queryItems = existingItems
+        return components.url ?? self
+    }
+
+    /// Mutates the URL to append a path component (iOS 15 compatible).
+    mutating func appendPathCompat(_ path: String) {
+        self = self.appendingPathCompat(path)
+    }
+
+    /// Mutates the URL to append query items (iOS 15 compatible).
+    mutating func appendQueryItemsCompat(_ queryItems: [URLQueryItem]) {
+        self = self.appendingQueryItemsCompat(queryItems)
     }
 }

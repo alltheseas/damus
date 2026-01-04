@@ -7,6 +7,22 @@
 
 import SwiftUI
 
+// MARK: - iOS 15 Compatibility
+
+/// A TextField that supports vertical axis (multi-line) on iOS 16+ and falls back to standard TextField on iOS 15.
+private struct CompatibleTextField: View {
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        if #available(iOS 16.0, *) {
+            TextField(placeholder, text: $text, axis: .vertical)
+        } else {
+            TextField(placeholder, text: $text)
+        }
+    }
+}
+
 fileprivate extension ReportTarget {
     func reportTags(type: ReportType) -> [[String]] {
         switch self {
@@ -109,7 +125,7 @@ struct ReportView: View {
                 })
 
                 Section(content: {
-                    TextField(NSLocalizedString("Optional", comment: "Prompt to enter optional additional information when reporting an account or content."), text: $report_message, axis: .vertical)
+                    CompatibleTextField(placeholder: NSLocalizedString("Optional", comment: "Prompt to enter optional additional information when reporting an account or content."), text: $report_message)
                 }, header: {
                     Text("Additional information", comment: "Header text to prompt user to optionally provide additional information when reporting a user or note.")
                 })

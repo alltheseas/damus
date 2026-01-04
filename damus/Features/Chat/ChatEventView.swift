@@ -10,6 +10,19 @@ import EmojiKit
 import EmojiPicker
 import SwipeActions
 
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier that applies presentationDetents on iOS 16+, with no-op fallback for iOS 15.
+private struct ChatSheetPresentationModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.medium, .large])
+        } else {
+            content
+        }
+    }
+}
+
 fileprivate let CORNER_RADIUS: CGFloat = 10
 
 struct ChatEventView: View {
@@ -198,7 +211,7 @@ struct ChatEventView: View {
                 })) {
                     NavigationView {
                         EmojiPickerView(selectedEmoji: $selected_emoji, emojiProvider: damus_state.emoji_provider)
-                    }.presentationDetents([.medium, .large])
+                    }.modifier(ChatSheetPresentationModifier())
                 }
                 .sheet(isPresented: Binding(get: { popover_state == .open_zap_sheet }, set: { new_state in
                     withAnimation(new_state == true ? .easeIn(duration: 0.5) : .easeOut(duration: 0.1)) {
@@ -206,7 +219,7 @@ struct ChatEventView: View {
                     }
                 })) {
                     ZapSheetViewIfPossible(damus_state: damus_state, target: zap_target, lnurl: lnurl)
-                        .presentationDetents([.medium, .large])
+                        .modifier(ChatSheetPresentationModifier())
                 }
                 .onChange(of: selected_emoji) { newSelectedEmoji in
                     if let newSelectedEmoji {

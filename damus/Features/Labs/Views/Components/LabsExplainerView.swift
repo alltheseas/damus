@@ -7,6 +7,19 @@
 
 import SwiftUI
 
+/// ViewModifier to apply presentation detents and drag indicator on iOS 16+, with no-op fallback for iOS 15.
+private struct LabsExplainerSheetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDragIndicator(.visible)
+                .presentationDetents([.height(300)])
+        } else {
+            content
+        }
+    }
+}
+
 struct LabsExplainerView: View {
     let labName: String
     let systemImage: String
@@ -37,7 +50,6 @@ struct LabsExplainerView: View {
             .padding()
         }
         .overlay(Rectangle().frame(width: nil, height: 1, alignment: .top).foregroundColor(DamusColors.purple), alignment: .top)
-        .presentationDragIndicator(.visible)
-        .presentationDetents([.height(300)])
+        .modifier(LabsExplainerSheetModifier())
     }
 }

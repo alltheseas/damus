@@ -7,6 +7,21 @@
 
 import SwiftUI
 
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier that applies presentationDetents on iOS 16+, with no-op fallback for iOS 15.
+private struct ProfileActionSheetPresentationModifier: ViewModifier {
+    let height: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.height(height)])
+        } else {
+            content
+        }
+    }
+}
+
 struct ProfileActionSheetView: View {
     let damus_state: DamusState
     let pfp_size: CGFloat = 90.0
@@ -190,7 +205,7 @@ struct ProfileActionSheetView: View {
         .onPreferenceChange(InnerHeightPreferenceKey.self) { newHeight in
             sheetHeight = newHeight
         }
-        .presentationDetents([.height(sheetHeight)])
+        .modifier(ProfileActionSheetPresentationModifier(height: sheetHeight))
     }
 }
 

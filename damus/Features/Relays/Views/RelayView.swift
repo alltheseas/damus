@@ -48,7 +48,7 @@ struct RelayView: View {
 
                 VStack(alignment: .leading) {
                     HStack {
-                        Text(meta?.name ?? relay.url.host() ?? relay.url.absoluteString)
+                        Text(meta?.name ?? relay.url.host ?? relay.url.absoluteString)
                             .font(.headline)
                             .padding(.bottom, 2)
                             .lineLimit(1)

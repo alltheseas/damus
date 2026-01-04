@@ -133,8 +133,7 @@ struct MutelistView: View {
         }
         .sheet(isPresented: $show_add_muteitem, onDismiss: { self.show_add_muteitem = false }) {
             AddMuteItemView(state: damus_state, new_text: $new_text)
-                .presentationDetents([.height(300)])
-                .presentationDragIndicator(.visible)
+                .modifier(MutelistSheetModifier())
         }
     }
 }
@@ -142,5 +141,20 @@ struct MutelistView: View {
 struct MutelistView_Previews: PreviewProvider {
     static var previews: some View {
         MutelistView(damus_state: test_damus_state)
+    }
+}
+
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier providing iOS 15 compatibility for presentation modifiers.
+private struct MutelistSheetModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.visible)
+        } else {
+            content
+        }
     }
 }

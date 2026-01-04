@@ -108,9 +108,9 @@ struct FullScreenCarouselView<Content: View>: View {
                                 
                                 Spacer()
 
-                                if let url = urls[safe: carouselSelection.index],
+                                if #available(iOS 16.0, *),
+                                   let url = urls[safe: carouselSelection.index],
                                    let image = imageDict[url.url] {
-                                    
                                     ShareLink(item: Image(uiImage: image),
                                               preview: SharePreview(NSLocalizedString("Shared Picture",
                                                                                       comment: "Label for the preview of the image being picture"),

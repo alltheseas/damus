@@ -134,7 +134,7 @@ actor RelayPool {
     func register_handler(sub_id: String, filters: [NostrFilter]?, to relays: [RelayURL]? = nil, handler: AsyncStream<(RelayURL, NostrConnectionEvent)>.Continuation) async {
         while handlers.count > Self.MAX_CONCURRENT_SUBSCRIPTION_LIMIT {
             Log.debug("%s: Too many subscriptions, waiting for subscription pool to clear", for: .networking, sub_id)
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
         }
         Log.debug("%s: Subscription pool cleared", for: .networking, sub_id)
         handlers = handlers.filter({ handler in
@@ -292,8 +292,8 @@ actor RelayPool {
     ///   - desiredRelays: The desired relays which to subsctibe to. If `nil`, it defaults to the `RelayPool`'s default list
     ///   - eoseTimeout: The maximum timeout which to give up waiting for the eoseSignal
     /// - Returns: Returns an async stream that callers can easily consume via a for-loop
-    func subscribe(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, eoseTimeout: Duration? = nil, id: UUID? = nil) async -> AsyncStream<StreamItem> {
-        let eoseTimeout = eoseTimeout ?? .seconds(5)
+    func subscribe(filters: [NostrFilter], to desiredRelays: [RelayURL]? = nil, eoseTimeout: TimeInterval? = nil, id: UUID? = nil) async -> AsyncStream<StreamItem> {
+        let eoseTimeout = eoseTimeout ?? 5.0
         let desiredRelays = await getRelays(targetRelays: desiredRelays)
         let startTime = CFAbsoluteTimeGetCurrent()
         return AsyncStream<StreamItem> { continuation in
@@ -337,7 +337,7 @@ actor RelayPool {
                 }
             }
             let timeoutTask = Task {
-                try? await Task.sleep(for: eoseTimeout)
+                try? await Task.sleep(nanoseconds: UInt64(eoseTimeout * 1_000_000_000))
                 if !eoseSent { continuation.yield(with: .success(.eose)) }
             }
             continuation.onTermination = { @Sendable termination in

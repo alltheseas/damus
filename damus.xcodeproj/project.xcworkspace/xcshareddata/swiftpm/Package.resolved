@@ -1,5 +1,5 @@
 {
-  "originHash" : "1fc7e0b44329ba72cd285eeb022b5b92582cd01586b920d243cb0485c2e69dcc",
+  "originHash" : "85c318a0d6095b89906b8b6f8ebceafa3c539abbeef571d06c73cbf254ff527e",
   "pins" : [
     {
       "identity" : "codescanner",
@@ -60,6 +60,15 @@
       "state" : {
         "revision" : "4c6b067f96953ee19526e49e4189403a2be21fb3",
         "version" : "8.3.1"
+      }
+    },
+    {
+      "identity" : "navigationbackport",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/johnpatrickmorgan/NavigationBackport.git",
+      "state" : {
+        "revision" : "5baf99855f6a0a02022f9b479cc41ad99a8e070c",
+        "version" : "0.11.5"
       }
     },
     {
@@ -126,9 +135,10 @@
     {
       "identity" : "swiftycrop",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/benedom/SwiftyCrop",
+      "location" : "https://github.com/alltheseas/SwiftyCrop.git",
       "state" : {
-        "revision" : "454d0a0d4faf6f3a19c8d817ab9d7d27524bd79f"
+        "branch" : "ios-15-support",
+        "revision" : "d4f3a4bb41759ff08d8703a8f765ee3b8b6fd5b1"
       }
     },
     {

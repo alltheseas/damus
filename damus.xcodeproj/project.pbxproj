@@ -622,6 +622,7 @@
 		643EA5C8296B764E005081BB /* RelayFilterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 643EA5C7296B764E005081BB /* RelayFilterView.swift */; };
 		647D9A8D2968520300A295DE /* SideMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 647D9A8C2968520300A295DE /* SideMenuView.swift */; };
 		64FBD06F296255C400D9D3B2 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64FBD06E296255C400D9D3B2 /* Theme.swift */; };
+		6F844D05638925B6C3DD6E07 /* iOS15Compatibility.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA623D090EF2C4049AEBDB3 /* iOS15Compatibility.swift */; };
 		7527271E2A93FF0100214108 /* Block.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7527271D2A93FF0100214108 /* Block.swift */; };
 		75AD872B2AA23A460085EF2C /* Block+Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AD872A2AA23A460085EF2C /* Block+Tests.swift */; };
 		7C60CAEF298471A1009C80D6 /* CoreSVG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C60CAEE298471A1009C80D6 /* CoreSVG.swift */; };
@@ -1491,7 +1492,7 @@
 		D73E5EFB2C6A97F4007EB227 /* ProfilePicturesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C30AC7F29A6A53F00E2BD5A /* ProfilePicturesView.swift */; };
 		D73E5EFC2C6A97F4007EB227 /* DamusAppNotificationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78CD5972B8990300014D539 /* DamusAppNotificationView.swift */; };
 		D73E5EFD2C6A97F4007EB227 /* InnerTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE0E2B529A3ED5500DB4CA2 /* InnerTimelineView.swift */; };
-		D73E5EFE2C6A97F4007EB227 /* (null) in Sources */ = {isa = PBXBuildFile; };
+		D73E5EFE2C6A97F4007EB227 /* BuildFile in Sources */ = {isa = PBXBuildFile; };
 		D73E5EFF2C6A97F4007EB227 /* ZapsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE879572996C45300F758CC /* ZapsView.swift */; };
 		D73E5F002C6A97F4007EB227 /* CustomizeZapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9F18E129AA9B6C008C55EC /* CustomizeZapView.swift */; };
 		D73E5F012C6A97F4007EB227 /* ZapTypePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA3FA0F29F593D000FDB3C3 /* ZapTypePicker.swift */; };
@@ -2692,6 +2693,7 @@
 		9609F057296E220800069BF3 /* BannerImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BannerImageView.swift; sourceTree = "<group>"; };
 		9C83F89229A937B900136C08 /* TextViewWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextViewWrapper.swift; sourceTree = "<group>"; };
 		9CA876E129A00CE90003B9A3 /* AttachMediaUtility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttachMediaUtility.swift; sourceTree = "<group>"; };
+		9DA623D090EF2C4049AEBDB3 /* iOS15Compatibility.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = iOS15Compatibility.swift; sourceTree = "<group>"; };
 		ADFE73542AD4793100EC7326 /* QRScanNSECView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = QRScanNSECView.swift; sourceTree = "<group>"; };
 		B501062C2B363036003874F5 /* AuthIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthIntegrationTests.swift; sourceTree = "<group>"; usesTabs = 0; };
 		B51C1CE82B55A60A00E312A9 /* AddMuteItemView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AddMuteItemView.swift; sourceTree = "<group>"; };
@@ -4873,6 +4875,7 @@
 				D767066E2C8BB3CE00F09726 /* URLHandler.swift */,
 				D7CB5D4D2B11728000AD4105 /* NewEventsBits.swift */,
 				D74AAFC12B153395006CF0F4 /* HeadlessDamusState.swift */,
+				9DA623D090EF2C4049AEBDB3 /* iOS15Compatibility.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -5379,6 +5382,7 @@
 				D7C48C0A2D12DE0C00A3BACF /* SwiftyCrop */,
 				D7DB1FE32D5A9AC900CF06DA /* CryptoSwift */,
 				3ACF94372DA9A52F00971A4E /* FaviconFinder */,
+				E7A15B022E18C00200IOS15N /* NavigationBackport */,
 			);
 			productName = damus;
 			productReference = 4CE6DEE327F7A08100C66700 /* damus.app */;
@@ -5447,6 +5451,7 @@
 				D7C48C0C2D12E34900A3BACF /* SwiftyCrop */,
 				D7DB1FEB2D5A9F6500CF06DA /* CryptoSwift */,
 				3ACF943F2DA9B11200971A4E /* FaviconFinder */,
+				E7A15B032E18C00300IOS15N /* NavigationBackport */,
 			);
 			productName = "share extension";
 			productReference = 82D6FA972CD9820500C925F4 /* ShareExtension.appex */;
@@ -5477,6 +5482,7 @@
 				D7C48C0E2D12E35600A3BACF /* SwiftyCrop */,
 				D7DB1FE72D5A9F5300CF06DA /* CryptoSwift */,
 				3ACF943D2DA9B10800971A4E /* FaviconFinder */,
+				E7A15B042E18C00400IOS15N /* NavigationBackport */,
 			);
 			productName = "highlighter action extension";
 			productReference = D703D7172C66E47100A400EA /* HighlighterActionExtension.appex */;
@@ -5579,7 +5585,7 @@
 			);
 			mainGroup = 4CE6DEDA27F7A08100C66700;
 			packageReferences = (
-				4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */,
+				4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1.swift" */,
 				4C06670228FC7EC500038D2A /* XCRemoteSwiftPackageReference "Kingfisher" */,
 				4CCF9AB02A1FE80B00E03CFB /* XCRemoteSwiftPackageReference "GSPlayer" */,
 				4C27C9302A64766F007DBC75 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
@@ -5587,9 +5593,10 @@
 				3A0A30B92C21397A00F8C9BC /* XCRemoteSwiftPackageReference "EmojiPicker" */,
 				D78DB8572C1CE9CA00F0AB12 /* XCRemoteSwiftPackageReference "SwipeActions" */,
 				D70D90962CDED61800CD0534 /* XCRemoteSwiftPackageReference "CodeScanner" */,
-				D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */,
+				D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop-iOS15" */,
 				D7DB1FE22D5A9AC900CF06DA /* XCRemoteSwiftPackageReference "CryptoSwift" */,
 				3ACF94362DA9A52F00971A4E /* XCRemoteSwiftPackageReference "FaviconFinder" */,
+				E7A15B012E18C00100IOS15N /* XCRemoteSwiftPackageReference "NavigationBackport" */,
 			);
 			productRefGroup = 4CE6DEE427F7A08100C66700 /* Products */;
 			projectDirPath = "";
@@ -6261,6 +6268,7 @@
 				4C9B0DF32A65C46800CBDA21 /* ProfileEditButton.swift in Sources */,
 				4C32B95F2A9AD44700DC3548 /* Enum.swift in Sources */,
 				4C2859622A12A7F0004746F7 /* GoldSupportGradient.swift in Sources */,
+				6F844D05638925B6C3DD6E07 /* iOS15Compatibility.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -7174,7 +7182,7 @@
 				D73E5EFB2C6A97F4007EB227 /* ProfilePicturesView.swift in Sources */,
 				D73E5EFC2C6A97F4007EB227 /* DamusAppNotificationView.swift in Sources */,
 				D73E5EFD2C6A97F4007EB227 /* InnerTimelineView.swift in Sources */,
-				D73E5EFE2C6A97F4007EB227 /* (null) in Sources */,
+				D73E5EFE2C6A97F4007EB227 /* BuildFile in Sources */,
 				D7EB00B02CD59C8D00660C07 /* PresentFullScreenItemNotify.swift in Sources */,
 				D73E5EFF2C6A97F4007EB227 /* ZapsView.swift in Sources */,
 				D73E5F002C6A97F4007EB227 /* CustomizeZapView.swift in Sources */,
@@ -7822,7 +7830,7 @@
 					"$(PROJECT_DIR)/nostrdb/ccan/ccan/short_types",
 					"$(PROJECT_DIR)/damus-c",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MARKETING_VERSION = 1.16;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -7893,7 +7901,7 @@
 					"$(PROJECT_DIR)/nostrdb/ccan/ccan/short_types",
 					"$(PROJECT_DIR)/damus-c",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MARKETING_VERSION = 1.16;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -7933,7 +7941,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = Launch.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -7987,7 +7995,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = Launch.storyboard;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8020,7 +8028,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = XK7H4JAB3D;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jb55.damusTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -8038,7 +8046,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = XK7H4JAB3D;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.jb55.damusTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -8226,7 +8234,7 @@
 				INFOPLIST_FILE = DamusNotificationService/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DamusNotificationService;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8259,7 +8267,7 @@
 				INFOPLIST_FILE = DamusNotificationService/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DamusNotificationService;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -8378,7 +8386,7 @@
 				kind = branch;
 			};
 		};
-		4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */ = {
+		4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/jb55/secp256k1.swift";
 			requirement = {
@@ -8418,12 +8426,12 @@
 				minimumVersion = 1.14.1;
 			};
 		};
-		D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */ = {
+		D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop-iOS15" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/benedom/SwiftyCrop";
+			repositoryURL = "https://github.com/alltheseas/SwiftyCrop.git";
 			requirement = {
-				kind = revision;
-				revision = 454d0a0d4faf6f3a19c8d817ab9d7d27524bd79f;
+				branch = "ios-15-support";
+				kind = branch;
 			};
 		};
 		D7DB1FE22D5A9AC900CF06DA /* XCRemoteSwiftPackageReference "CryptoSwift" */ = {
@@ -8432,6 +8440,14 @@
 			requirement = {
 				kind = revision;
 				revision = e74bbbfbef939224b242ae7c342a90e60b88b5ce;
+			};
+		};
+		E7A15B012E18C00100IOS15N /* XCRemoteSwiftPackageReference "NavigationBackport" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/johnpatrickmorgan/NavigationBackport.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -8474,12 +8490,12 @@
 		};
 		4C649880286E0EE300EAE2B3 /* secp256k1 */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
+			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
 			productName = secp256k1;
 		};
 		82D6FC802CD99FC500C925F4 /* secp256k1 */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
+			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
 			productName = secp256k1;
 		};
 		82D6FC832CD9A48500C925F4 /* Kingfisher */ = {
@@ -8504,7 +8520,7 @@
 		};
 		D703D7482C6709B100A400EA /* secp256k1 */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
+			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
 			productName = secp256k1;
 		};
 		D703D7AC2C670FA700A400EA /* MarkdownUI */ = {
@@ -8549,7 +8565,7 @@
 		};
 		D789D11F2AFEFBF20083A7AB /* secp256k1 */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1" */;
+			package = 4C64987F286E0EE300EAE2B3 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
 			productName = secp256k1;
 		};
 		D78DB8582C1CE9CA00F0AB12 /* SwipeActions */ = {
@@ -8569,17 +8585,17 @@
 		};
 		D7C48C0A2D12DE0C00A3BACF /* SwiftyCrop */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
+			package = D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop-iOS15" */;
 			productName = SwiftyCrop;
 		};
 		D7C48C0C2D12E34900A3BACF /* SwiftyCrop */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
+			package = D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop-iOS15" */;
 			productName = SwiftyCrop;
 		};
 		D7C48C0E2D12E35600A3BACF /* SwiftyCrop */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop" */;
+			package = D7C48C092D12DE0C00A3BACF /* XCRemoteSwiftPackageReference "SwiftyCrop-iOS15" */;
 			productName = SwiftyCrop;
 		};
 		D7DB1FE32D5A9AC900CF06DA /* CryptoSwift */ = {
@@ -8616,6 +8632,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D70D90962CDED61800CD0534 /* XCRemoteSwiftPackageReference "CodeScanner" */;
 			productName = CodeScanner;
+		};
+		E7A15B022E18C00200IOS15N /* NavigationBackport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E7A15B012E18C00100IOS15N /* XCRemoteSwiftPackageReference "NavigationBackport" */;
+			productName = NavigationBackport;
+		};
+		E7A15B032E18C00300IOS15N /* NavigationBackport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E7A15B012E18C00100IOS15N /* XCRemoteSwiftPackageReference "NavigationBackport" */;
+			productName = NavigationBackport;
+		};
+		E7A15B042E18C00400IOS15N /* NavigationBackport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E7A15B012E18C00100IOS15N /* XCRemoteSwiftPackageReference "NavigationBackport" */;
+			productName = NavigationBackport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

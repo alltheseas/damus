@@ -66,8 +66,7 @@ struct SelectableText: View {
                     action: .highlighting(.init(selected_text: highlighted_text, source: .event(event.id))),
                     damus_state: damus_state
                 )
-                .presentationDragIndicator(.visible)
-                .presentationDetents([.height(selectedTextHeight + 450), .medium, .large])
+                .modifier(SelectableTextPresentationModifier(height: selectedTextHeight + 450))
             }
         }
         .sheet(isPresented: Binding(get: {
@@ -77,8 +76,7 @@ struct SelectableText: View {
         })) {
             if case .show_mute_word_view(let highlighted_text) = selectedTextActionState {
                 AddMuteItemView(state: damus_state, new_text: .constant(highlighted_text))
-                    .presentationDragIndicator(.visible)
-                    .presentationDetents([.height(300), .medium, .large])
+                    .modifier(SelectableTextPresentationModifier(height: 300))
             }
         }
         .frame(height: selectedTextHeight)
@@ -253,5 +251,21 @@ fileprivate extension NSAttributedString {
         )
 
         return ceil(rect.size.height)
+    }
+}
+
+/// ViewModifier providing iOS 15 compatibility for presentation modifiers.
+/// Applies presentationDragIndicator and presentationDetents on iOS 16+, no-op on iOS 15.
+private struct SelectableTextPresentationModifier: ViewModifier {
+    let height: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content
+                .presentationDragIndicator(.visible)
+                .presentationDetents([.height(height), .medium, .large])
+        } else {
+            content
+        }
     }
 }

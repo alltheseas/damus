@@ -9,6 +9,29 @@ import SwiftUI
 import CoreImage.CIFilterBuiltins
 import CodeScanner
 
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier for large presentation detent on iOS 16+, no-op on iOS 15.
+private struct LargePresentationDetentModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.large])
+        } else {
+            content
+        }
+    }
+}
+
+/// ViewModifier for medium presentation detent on iOS 16+, no-op on iOS 15.
+private struct MediumPresentationDetentModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.presentationDetents([.medium])
+        } else {
+            content
+        }
+    }
+}
 
 struct QRCodeView: View {
     let damus_state: DamusState
@@ -299,7 +322,7 @@ fileprivate struct QRCameraView<Content: View>: View {
                 dismiss()
             })
             .tint(DamusColors.adaptableBlack)
-            .presentationDetents([.large])
+            .modifier(LargePresentationDetentModifier())
         })
         // Dismiss an incompatible QR code message automatically after a second or two of pointing it elsewhere.
         .onReceive(timer) { _ in
@@ -338,7 +361,7 @@ fileprivate struct QRCameraView<Content: View>: View {
                 .font(.headline)
             Text(error.localizedDescription)
         }
-        .presentationDetents([.medium])
+        .modifier(MediumPresentationDetentModifier())
         .tint(DamusColors.adaptableBlack)
     }
     
