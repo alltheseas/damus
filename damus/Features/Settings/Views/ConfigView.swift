@@ -9,6 +9,7 @@ import Kingfisher
 import SwiftUI
 import LocalAuthentication
 import Combine
+import NavigationBackport
 
 struct ConfigView: View {
     let state: DamusState
@@ -57,56 +58,56 @@ struct ConfigView: View {
                 Section {
                     // Keys
                     if showSettingsButton(title: keysTitle){
-                        NavigationLink(value:Route.KeySettings(keypair: state.keypair)){
+                        NBNavigationLink(value:Route.KeySettings(keypair: state.keypair)){
                             IconLabel(keysTitle,img_name:"Key",color:.purple)
                         }
                     }
                     // Appearance and filters
                     if showSettingsButton(title: appearanceTitle){
-                        NavigationLink(value:Route.AppearanceSettings(settings: settings)){
+                        NBNavigationLink(value:Route.AppearanceSettings(settings: settings)){
                             IconLabel(appearanceTitle,img_name:"eye",color:.red)
                         }
                     }
                     // Search/Universe
                     if showSettingsButton(title: searchUniverseTitle){
-                        NavigationLink(value: Route.SearchSettings(settings: settings)){
+                        NBNavigationLink(value: Route.SearchSettings(settings: settings)){
                             IconLabel(searchUniverseTitle,img_name:"search",color:.red)
                         }
                     }
 
                     //Notifications
                     if showSettingsButton(title: notificationsTitle){
-                        NavigationLink(value: Route.NotificationSettings(settings: settings)){
+                        NBNavigationLink(value: Route.NotificationSettings(settings: settings)){
                             IconLabel(notificationsTitle,img_name:"notification-bell-on",color:.blue)
                         }
                     }
                     //Zaps
                     if showSettingsButton(title: zapsTitle){
-                        NavigationLink(value: Route.ZapSettings(settings: settings)){
+                        NBNavigationLink(value: Route.ZapSettings(settings: settings)){
                             IconLabel(zapsTitle,img_name:"zap.fill",color:.orange)
                         }
                     }
                     //Translation
                     if showSettingsButton(title: translationTitle){
-                        NavigationLink(value: Route.TranslationSettings(settings: settings)){
+                        NBNavigationLink(value: Route.TranslationSettings(settings: settings)){
                             IconLabel(translationTitle,img_name:"globe",color:.green)
                         }
                     }
                     //Reactions
                     if showSettingsButton(title: reactionsTitle){
-                        NavigationLink(value: Route.ReactionsSettings(settings: settings)){
+                        NBNavigationLink(value: Route.ReactionsSettings(settings: settings)){
                             IconLabel(reactionsTitle,img_name:"shaka.fill",color:.purple)
                         }
                     }
                     //Developer
                     if showSettingsButton(title: developerTitle){
-                        NavigationLink(value: Route.DeveloperSettings(settings: settings)){
+                        NBNavigationLink(value: Route.DeveloperSettings(settings: settings)){
                             IconLabel(developerTitle,img_name:"magic-stick2.fill",color:DamusColors.adaptableBlack)
                         }
                     }
                     //First Aid
                     if showSettingsButton(title: firstAidTitle){
-                        NavigationLink(value: Route.FirstAidSettings(settings: settings)){
+                        NBNavigationLink(value: Route.FirstAidSettings(settings: settings)){
                             IconLabel(firstAidTitle,img_name:"help2",color: .red)
                         }
                     }

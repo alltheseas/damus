@@ -6,6 +6,20 @@
 //
 
 import SwiftUI
+import NavigationBackport
+
+// MARK: - iOS 15 Compatibility
+
+/// ViewModifier to apply hidden toolbar background on iOS 16+, no-op on iOS 15.
+private struct HiddenToolbarBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.0, *) {
+            content.toolbarBackground(.hidden)
+        } else {
+            content
+        }
+    }
+}
 
 func follow_btn_txt(_ fs: FollowState, follows_you: Bool) -> String {
     switch fs {
@@ -240,6 +254,23 @@ struct ProfileView: View {
         }
     }
 
+    /// Trailing toolbar content that shows follow button or action sheet button based on banner scroll state.
+    @ViewBuilder
+    private var trailingToolbarContent: some View {
+        if showFollowBtnInBlurrBanner() {
+            FollowButtonView(
+                target: profile.get_follow_target(),
+                follows_you: profile.follows(pubkey: damus_state.pubkey),
+                follow_state: damus_state.contacts.follow_state(profile.pubkey)
+            )
+            .padding(.top, 8)
+        } else {
+            navActionSheetButton
+                .padding(.top, 5)
+                .accentColor(DamusColors.white)
+        }
+    }
+
     func lnButton(profile: Profile?, lnurl: String?) -> some View {
         return ProfileZapLinkView(profile: profile, lnurl: lnurl, profileModel: self.profile) { reactions_enabled, lud16, lnurl in
             Image(reactions_enabled ? "zap.fill" : "zap")
@@ -251,7 +282,7 @@ struct ProfileView: View {
     
     var dmButton: some View {
         let dm_model = damus_state.dms.lookup_or_create(profile.pubkey)
-        return NavigationLink(value: Route.DMChat(dms: dm_model)) {
+        return NBNavigationLink(value: Route.DMChat(dms: dm_model)) {
             Image("messages")
                 .profile_button_style(scheme: colorScheme)
         }
@@ -290,7 +321,7 @@ struct ProfileView: View {
                     follow_state: damus_state.contacts.follow_state(profile.pubkey)
                 )
             } else if damus_state.keypair.privkey != nil {
-                NavigationLink(value: Route.EditMetadata) {
+                NBNavigationLink(value: Route.EditMetadata) {
                     ProfileEditButton(damus_state: damus_state)
                 }
             }
@@ -376,7 +407,7 @@ struct ProfileView: View {
                     let contacts = Array(contact.referenced_pubkeys)
                     let hashtags = Array(contact.referenced_hashtags)
                     let following_model = FollowingModel(damus_state: damus_state, contacts: contacts, hashtags: hashtags)
-                    NavigationLink(value: Route.Following(following: following_model)) {
+                    NBNavigationLink(value: Route.Following(following: following_model)) {
                         HStack {
                             let noun_text = Text(verbatim: "\(pluralizedString(key: "following_count", count: profile.following))").font(.subheadline).foregroundColor(.gray)
                             Text("\(Text(verbatim: profile.following.formatted()).font(.subheadline.weight(.medium))) \(noun_text)", comment: "Sentence composed of 2 variables to describe how many profiles a user is following. In source English, the first variable is the number of profiles being followed, and the second variable is 'Following'.")
@@ -386,7 +417,7 @@ struct ProfileView: View {
                 }
 
                 if followers.contacts != nil {
-                    NavigationLink(value: Route.Followers(followers: followers)) {
+                    NBNavigationLink(value: Route.Followers(followers: followers)) {
                         followersCount
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -405,12 +436,12 @@ struct ProfileView: View {
                     let noun_text = Text(noun_string).font(.subheadline).foregroundColor(.gray)
                     let relay_text = Text("\(Text(verbatim: relays.count.formatted()).font(.subheadline.weight(.medium))) \(noun_text)", comment: "Sentence composed of 2 variables to describe how many relay servers a user is connected. In source English, the first variable is the number of relay servers, and the second variable is 'Relay' or 'Relays'.")
                     if profile.pubkey == damus_state.pubkey && damus_state.is_privkey_user {
-                        NavigationLink(value: Route.RelayConfig) {
+                        NBNavigationLink(value: Route.RelayConfig) {
                             relay_text
                         }
                         .buttonStyle(PlainButtonStyle())
                     } else {
-                        NavigationLink(value: Route.UserRelays(relays: relays.sorted())) {
+                        NBNavigationLink(value: Route.UserRelays(relays: relays.sorted())) {
                             relay_text
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -423,7 +454,7 @@ struct ProfileView: View {
                 if !friended_followers.isEmpty {
                     Spacer()
 
-                    NavigationLink(value: Route.FollowersYouKnow(friendedFollowers: friended_followers, followers: followers)) {
+                    NBNavigationLink(value: Route.FollowersYouKnow(friendedFollowers: friended_followers, followers: followers)) {
                         HStack {
                             CondensedProfilePicturesView(state: damus_state, pubkeys: friended_followers, maxPictures: 3)
                             let followedByString = followedByString(friended_followers, ndb: damus_state.ndb)
@@ -503,24 +534,11 @@ struct ProfileView: View {
                         .padding(.top, max(5, 15 + (yOffset / 30)))
                     }
                 }
-                if showFollowBtnInBlurrBanner() {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        FollowButtonView(
-                            target: profile.get_follow_target(),
-                            follows_you: profile.follows(pubkey: damus_state.pubkey),
-                            follow_state: damus_state.contacts.follow_state(profile.pubkey)
-                        )
-                        .padding(.top, 8)
-                    }
-                } else {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        navActionSheetButton
-                            .padding(.top, 5)
-                            .accentColor(DamusColors.white)
-                    }
+                ToolbarItem(placement: .topBarTrailing) {
+                    trailingToolbarContent
                 }
             }
-            .toolbarBackground(.hidden)
+            .modifier(HiddenToolbarBackgroundModifier())
             .onReceive(handle_notify(.switched_timeline)) { _ in
                 dismiss()
             }
