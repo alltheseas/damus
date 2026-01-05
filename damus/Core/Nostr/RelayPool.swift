@@ -195,20 +195,31 @@ actor RelayPool {
     ///   - relayURLs: Relay URLs whose leases should be decremented. If a relay's lease count reaches zero and the relay is marked ephemeral, the relay will be removed. Relays not present in the lease table are ignored.
     func releaseEphemeralRelays(_ relayURLs: [RelayURL]) async {
         for url in relayURLs {
-            guard let count = ephemeralLeases[url] else { continue }
-            if count <= 1 {
-                ephemeralLeases[url] = nil
+            guard let count = ephemeralLeases[url], count > 0 else { continue }
+
+            // Decrement immediately (atomic with respect to this actor, before any suspension)
+            let newCount = count - 1
+            ephemeralLeases[url] = newCount == 0 ? nil : newCount
+
+            #if DEBUG
+            print("[RelayPool] Released lease on ephemeral relay \(url.absoluteString), count: \(newCount)")
+            #endif
+
+            if newCount == 0 {
+                // Check if relay exists and is ephemeral
                 if let relay = await get_relay(url), relay.descriptor.ephemeral {
+                    // Re-check: only remove if lease is still nil (not re-acquired during await)
+                    guard ephemeralLeases[url] == nil else {
+                        #if DEBUG
+                        print("[RelayPool] Lease re-acquired during check, skipping removal: \(url.absoluteString)")
+                        #endif
+                        continue
+                    }
                     #if DEBUG
-                    print("[RelayPool] Releasing last lease, removing ephemeral relay: \(url.absoluteString)")
+                    print("[RelayPool] Removing ephemeral relay: \(url.absoluteString)")
                     #endif
                     await remove_relay(url)
                 }
-            } else {
-                ephemeralLeases[url] = count - 1
-                #if DEBUG
-                print("[RelayPool] Released lease on ephemeral relay \(url.absoluteString), count: \(ephemeralLeases[url] ?? 0)")
-                #endif
             }
         }
     }
