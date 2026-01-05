@@ -599,7 +599,7 @@ actor RelayPool {
 
     /// Dispatches a Nostr request to the pool's matching relays, writing a local copy to the NostrDB and queuing the request for any relay that is not currently connected.
     ///
-    — Filters target relays by their read/write capabilities and, optionally, by ephemeral status; connected relays receive the request immediately and disconnected relays have the request queued for later delivery. Sent messages are reported via `message_sent_function` when available.
+    /// Filters target relays by their read/write capabilities and, optionally, by ephemeral status; connected relays receive the request immediately and disconnected relays have the request queued for later delivery. Sent messages are reported via `message_sent_function` when available.
     /// - Parameters:
     ///   - req: The Nostr request to send.
     ///   - to: Optional list of relay URLs to restrict delivery to; `nil` targets the pool's default set of relays.

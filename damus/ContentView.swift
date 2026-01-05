@@ -1112,7 +1112,7 @@ extension LossyLocalNotification {
     /// Computes a view open action from a mention reference.
     /// Converts this mention's NIP-19 reference into a UI action for the app.
     ///
-    — Maps NPUB and NPROFILE references to profile routes, NOTE/NEVENT/NADDR references to loadable note routes, NSCRIPT to a script view, and returns an error sheet for deprecated or unsafe references (`nrelay`, `nsec`).
+    /// Maps NPUB and NPROFILE references to profile routes, NOTE/NEVENT/NADDR references to loadable note routes, NSCRIPT to a script view, and returns an error sheet for deprecated or unsafe references (`nrelay`, `nsec`).
     /// - Returns: A `ContentView.ViewOpenAction` that represents the route or sheet to present for this mention.
     func toViewOpenAction() -> ContentView.ViewOpenAction {
         switch self.mention.nip19 {
