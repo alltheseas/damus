@@ -23,8 +23,78 @@ struct ChatroomThreadView: View {
     @State var showStickyHeader: Bool = false
     @State var untrustedSectionOffset: CGFloat = 0
 
+    // Add state for reading progress (longform articles)
+    @State private var readingProgress: CGFloat = 0
+    @State private var viewportHeight: CGFloat = 0
+    @State private var contentTopY: CGFloat = 0
+    @State private var contentBottomY: CGFloat = 0
+    @State private var initialTopY: CGFloat? = nil
+
+    // Focus mode: auto-hide chrome (nav bar + tab bar) during longform reading
+    @State private var chromeHidden: Bool = false
+    @State private var lastScrollY: CGFloat = 0
+    /// Minimum scroll distance before triggering chrome hide/show
+    private let scrollThreshold: CGFloat = 15
+
     private static let untrusted_network_section_id = "untrusted-network-section"
     private static let sticky_header_adjusted_anchor = UnitPoint(x: UnitPoint.top.x, y: 0.2)
+
+    /// Returns true if the selected event is a longform article (kind 30023).
+    var isLongformEvent: Bool {
+        thread.selected_event.kind == 30023
+    }
+
+    /// Updates reading progress based on scroll position.
+    private func updateReadingProgress() {
+        guard thread.selected_event.kind == 30023 else { return }
+        guard viewportHeight > 0 else { return }
+
+        // Capture initial position on first update
+        if initialTopY == nil {
+            initialTopY = contentTopY
+        }
+        guard let startY = initialTopY else { return }
+
+        // Content height is constant (bottom - top in global coords)
+        let contentHeight = contentBottomY - contentTopY
+        guard contentHeight > 0 else { return }
+
+        // How much we've scrolled from initial position
+        // As we scroll down, contentTopY decreases, so scrolled = startY - currentTopY
+        let scrolled = startY - contentTopY
+        let maxScroll = max(contentHeight - viewportHeight, 1)
+
+        let progress = scrolled / maxScroll
+        readingProgress = min(max(progress, 0), 1)
+    }
+
+    /// Updates chrome visibility based on scroll direction (longform only).
+    /// Scrolling down hides chrome; tap to restore (scroll up does not restore).
+    private func updateChromeVisibility(newY: CGFloat) {
+        guard isLongformEvent else { return }
+
+        let delta = newY - lastScrollY
+
+        // Only hide chrome on scroll down, don't restore on scroll up (use tap instead)
+        if delta < -scrollThreshold && !chromeHidden {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                chromeHidden = true
+            }
+            notify(.display_tabbar(false))
+        }
+
+        // Always update lastScrollY to prevent stale delta accumulation
+        lastScrollY = newY
+    }
+
+    /// Shows chrome (nav bar + tab bar) - called on tap or when leaving view.
+    private func showChrome() {
+        guard chromeHidden else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            chromeHidden = false
+        }
+        notify(.display_tabbar(true))
+    }
 
     func go_to_event(scroller: ScrollViewProxy, note_id: NoteId) {
         let adjustedAnchor: UnitPoint = showStickyHeader ? ChatroomThreadView.sticky_header_adjusted_anchor : .top
@@ -108,6 +178,22 @@ struct ChatroomThreadView: View {
 
             ZStack(alignment: .top) {
                 ScrollView(.vertical) {
+                    VStack(spacing: 0) {
+                    // Top scroll position tracker
+                    GeometryReader { geo in
+                        Color.clear
+                            .onChange(of: geo.frame(in: .global).minY) { newY in
+                                contentTopY = newY
+                                updateReadingProgress()
+                                updateChromeVisibility(newY: newY)
+                            }
+                            .onAppear {
+                                contentTopY = geo.frame(in: .global).minY
+                                lastScrollY = geo.frame(in: .global).minY
+                            }
+                    }
+                    .frame(height: 1)
+
                     LazyVStack(alignment: .leading, spacing: 8) {
                         // MARK: - Parents events view
                         ForEach(thread.parent_events, id: \.id) { parent_event in
@@ -155,7 +241,8 @@ struct ChatroomThreadView: View {
                             ThreadedSwipeViewGroup(scroller: scroller, events: trusted_events)
                         }
                     }
-                    .padding(.top)
+                    // Remove top padding for longform articles with sepia to eliminate gap
+                    .padding(.top, isLongformEvent && damus.settings.longform_sepia_mode ? 0 : nil)
 
                     // MARK: - Children view - outside trusted network
                     if !untrusted_events.isEmpty {
@@ -214,11 +301,41 @@ struct ChatroomThreadView: View {
                         }
                     }
 
+                    // Bottom scroll position tracker - placed before EndBlock so we measure article content, not padding
+                    GeometryReader { geo in
+                        Color.clear
+                            .onChange(of: geo.frame(in: .global).minY) { newY in
+                                contentBottomY = newY
+                                updateReadingProgress()
+                            }
+                            .onAppear {
+                                contentBottomY = geo.frame(in: .global).minY
+                            }
+                    }
+                    .frame(height: 1)
+
                     EndBlock()
 
                     HStack {}
                         .frame(height: tabHeight + getSafeAreaBottom())
+                    } // End VStack wrapper
                 }
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear {
+                                viewportHeight = geo.size.height
+                            }
+                            .onChange(of: geo.size.height) { newHeight in
+                                // Reset baseline on significant height change (orientation, text size)
+                                if abs(newHeight - viewportHeight) > 50 {
+                                    initialTopY = nil
+                                }
+                                viewportHeight = newHeight
+                                updateReadingProgress()
+                            }
+                    }
+                )
 
                 if showStickyHeader && !untrusted_events.isEmpty {
                     VStack {
@@ -232,6 +349,15 @@ struct ChatroomThreadView: View {
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(1)
+                }
+
+                // Reading progress bar - show for longform articles
+                if thread.selected_event.kind == 30023 {
+                    VStack(spacing: 0) {
+                        ReadingProgressBar(progress: readingProgress)
+                        Spacer()
+                    }
+                    .zIndex(100)
                 }
             }
             .onReceive(handle_notify(.post), perform: { notify in
@@ -251,10 +377,33 @@ struct ChatroomThreadView: View {
             .onAppear() {
                 thread.subscribe()
                 scroll_to_event(scroller: scroller, id: thread.selected_event.id, delay: 0.1, animate: false)
+                // Ensure chrome is visible when view appears (handles interrupted transitions)
+                if isLongformEvent {
+                    chromeHidden = false
+                    notify(.display_tabbar(true))
+                }
+            }
+            .onChange(of: thread.selected_event.id) { _ in
+                // Reset reading progress when switching to a different event
+                initialTopY = nil
+                readingProgress = 0
+                // Restore chrome when switching events (user tapped to select)
+                showChrome()
             }
             .onDisappear() {
                 thread.unsubscribe()
+                showChrome()  // Restore chrome when leaving view
             }
+            .navigationBarHidden(chromeHidden && isLongformEvent)
+            // Tap anywhere to show chrome when hidden (doesn't block other gestures)
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded { _ in
+                        if isLongformEvent && chromeHidden {
+                            showChrome()
+                        }
+                    }
+            )
         }
     }
 }
@@ -278,3 +427,4 @@ struct ChatroomView_Previews: PreviewProvider {
         }
     }
 }
+
