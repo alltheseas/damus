@@ -333,15 +333,14 @@ actor RelayPool {
                 }
             }
 
-            if anyConnected {
-                // Start grace period on first connection (if not already started)
-                if graceDeadline == nil {
-                    graceDeadline = ContinuousClock.now + .milliseconds(300)
-                }
-                // Exit once grace period expires
-                if let deadline = graceDeadline, ContinuousClock.now >= deadline {
-                    break waitLoop
-                }
+            if anyConnected && graceDeadline == nil {
+                // Start grace period on first connection
+                graceDeadline = ContinuousClock.now + .milliseconds(300)
+            }
+
+            // Exit once grace period expires (check every iteration if deadline is set)
+            if let deadline = graceDeadline, ContinuousClock.now >= deadline {
+                break waitLoop
             }
         }
 
