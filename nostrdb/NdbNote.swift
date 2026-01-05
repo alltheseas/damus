@@ -543,6 +543,14 @@ extension NdbNote {
         return thread_reply()?.reply.note_id
     }
 
+    /// Returns the direct reply reference with relay hint if available.
+    ///
+    /// Per NIP-10, the reply `e` tag may include a relay URL at position 2 where
+    /// the replied-to event can be found.
+    public func direct_reply_ref() -> NoteRef? {
+        return thread_reply()?.reply
+    }
+
     // NDBTODO: just use Id
     public func thread_id() -> NoteId {
         guard let root = self.thread_reply()?.root else {
