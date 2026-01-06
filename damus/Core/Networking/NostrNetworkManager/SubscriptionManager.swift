@@ -373,11 +373,16 @@ extension NostrNetworkManager {
 
             // If relay hints provided, try them first with a short timeout
             if let targetRelays, !targetRelays.isEmpty {
-                // Check if any hint relays are actually in the pool
-                let resolvedRelays = await self.pool.getRelays(targetRelays: targetRelays)
-                guard !resolvedRelays.isEmpty else {
+                // Acquire ephemeral relays and connect to them
+                await self.pool.acquireEphemeralRelays(targetRelays)
+                defer {
+                    Task { await self.pool.releaseEphemeralRelays(targetRelays) }
+                }
+
+                let connectedRelays = await self.pool.ensureConnected(to: targetRelays)
+                guard !connectedRelays.isEmpty else {
                     #if DEBUG
-                    Self.logger.info("lookup(noteId): No hint relays in pool, skipping to broadcast")
+                    Self.logger.info("lookup(noteId): No hint relays connected, skipping to broadcast")
                     #endif
                     return await fetchFromRelays(filter: filter, relays: nil, timeout: totalTimeout)
                 }
@@ -386,10 +391,10 @@ extension NostrNetworkManager {
                 let hintTimeout = min(.seconds(3), totalTimeout / 2)
 
                 #if DEBUG
-                Self.logger.info("lookup(noteId): Trying \(resolvedRelays.count)/\(targetRelays.count) hint relay(s) with \(hintTimeout) timeout")
+                Self.logger.info("lookup(noteId): Trying \(connectedRelays.count)/\(targetRelays.count) hint relay(s) with \(hintTimeout) timeout")
                 #endif
 
-                let result = await fetchFromRelays(filter: filter, relays: targetRelays, timeout: hintTimeout)
+                let result = await fetchFromRelays(filter: filter, relays: connectedRelays, timeout: hintTimeout)
                 if let result {
                     return result
                 }
@@ -444,9 +449,6 @@ extension NostrNetworkManager {
             return events
         }
         
-        /// Finds a replaceable event based on an `naddr` address.
-        ///
-        /// - Parameters:
         /// Finds a Nostr event that corresponds to the provided naddr identifier.
         /// - Parameters:
         ///   - naddr: The NAddr (network address) that identifies the target replaceable event (contains kind, author, and identifier).
