@@ -60,7 +60,7 @@ struct NIP05Badge: View {
     }
 
     var username_matches_nip05: Bool {
-        guard let name = damus_state.profiles.lookup(id: pubkey)?.name
+        guard let name = try? damus_state.profiles.lookup(id: pubkey)?.name
         else {
             return false
         }
@@ -109,6 +109,7 @@ extension View {
     }
 }
 
+@MainActor
 func use_nip05_color(pubkey: Pubkey, contacts: Contacts) -> Bool {
     return contacts.is_friend_or_self(pubkey) ? true : false
 }

@@ -21,7 +21,7 @@ struct UserSearch: View {
     }
     
     func on_user_tapped(pk: Pubkey) {
-        let profile = damus_state.profiles.lookup(id: pk)
+        let profile = try? damus_state.profiles.lookup(id: pk)
         let user_tag = user_tag_attr_string(profile: profile, pubkey: pk)
 
         appendUserTag(withTag: user_tag)
@@ -51,6 +51,8 @@ struct UserSearch: View {
                         ForEach(users) { pk in
                             UserView(damus_state: damus_state, pubkey: pk)
                                 .contentShape(Rectangle())
+                                .accessibilityElement(children: .combine)
+                                .accessibilityIdentifier(AppAccessibilityIdentifiers.post_composer_mention_user_result.rawValue)
                                 .onTapGesture {
                                     on_user_tapped(pk: pk)
                                 }

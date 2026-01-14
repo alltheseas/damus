@@ -10,6 +10,7 @@ import LinkPresentation
 import NaturalLanguage
 import MarkdownUI
 import Translation
+import UIKit
 
 struct Blur: UIViewRepresentable {
     var style: UIBlurEffect.Style = .systemUltraThinMaterial
@@ -45,10 +46,11 @@ struct NoteContentView: View {
     let event: NostrEvent
     @State var blur_images: Bool
     @State var load_media: Bool = false
-    @State private var requestedMentionProfiles: Set<Pubkey> = []
+    @State private var showLinksDropdown = false
     let size: EventViewKind
     let preview_height: CGFloat?
     let options: EventViewOptions
+    let highlightTerms: [String]
 
     @State var isAppleTranslationPopoverPresented: Bool = false
 
@@ -63,12 +65,13 @@ struct NoteContentView: View {
         return self.artifacts_model.state.artifacts ?? .separated(.just_content(event.get_content(damus_state.keypair)))
     }
     
-    init(damus_state: DamusState, event: NostrEvent, blur_images: Bool, size: EventViewKind, options: EventViewOptions) {
+    init(damus_state: DamusState, event: NostrEvent, blur_images: Bool, size: EventViewKind, options: EventViewOptions, highlightTerms: [String] = []) {
         self.damus_state = damus_state
         self.event = event
         self.blur_images = blur_images
         self.size = size
         self.options = options
+        self.highlightTerms = highlightTerms
         self.preview_height = lookup_cached_preview_size(previews: damus_state.previews, evid: event.id)
         let cached = damus_state.events.get_cache_data(event.id)
         self._preview_model = ObservedObject(wrappedValue: cached.preview_model)
@@ -168,29 +171,33 @@ struct NoteContentView: View {
     }
     
     func MainContent(artifacts: NoteArtifactsSeparated) -> some View {
-        VStack(alignment: .leading) {
-            if size == .selected {
-                if with_padding {
-                    SelectableText(damus_state: damus_state, event: self.event, attributedString: artifacts.content.attributed, size: self.size)
-                        .padding(.horizontal)
-                } else {
-                    SelectableText(damus_state: damus_state, event: self.event, attributedString: artifacts.content.attributed, size: self.size)
-                }
-            } else {
-                if with_padding {
-                    truncatedText(content: artifacts.content)
-                        .padding(.horizontal)
-                } else {
-                    truncatedText(content: artifacts.content)
-                }
-            }
+        let contentToRender = highlightedContent(artifacts.content)
 
-            if !options.contains(.no_translate) && (size == .selected || TranslationService.isAppleTranslationPopoverSupported || damus_state.settings.auto_translate) {
-                if with_padding {
-                    translateView
-                        .padding(.horizontal)
+        return VStack(alignment: .leading) {
+            if artifacts.content.attributed.characters.count != 0 {
+                if size == .selected {
+                    if with_padding {
+                        SelectableText(damus_state: damus_state, event: self.event, attributedString: contentToRender.attributed, size: self.size)
+                            .padding(.horizontal)
+                    } else {
+                        SelectableText(damus_state: damus_state, event: self.event, attributedString: contentToRender.attributed, size: self.size)
+                    }
                 } else {
-                    translateView
+                    if with_padding {
+                        truncatedText(content: contentToRender)
+                            .padding(.horizontal)
+                    } else {
+                        truncatedText(content: contentToRender)
+                    }
+                }
+
+                if !options.contains(.no_translate) && (size == .selected || TranslationService.isAppleTranslationPopoverSupported || damus_state.settings.auto_translate) {
+                    if with_padding {
+                        translateView
+                            .padding(.horizontal)
+                    } else {
+                        translateView
+                    }
                 }
             }
 
@@ -231,53 +238,120 @@ struct NoteContentView: View {
             }
 
         }
+        .padding(.top, artifacts.content.attributed.characters.count == 0 ? 7 : 0)
     }
 
     var has_previews: Bool {
         !options.contains(.no_previews)
     }
-
+    
     func loadMediaButton(artifacts: NoteArtifactsSeparated) -> some View {
-        Button(action: {
-            load_media = true
-        }, label: {
-            VStack(alignment: .leading) {
-                HStack {
-                    Image("images")
-                    Text("Load media", comment: "Button to show media in note.")
-                        .fontWeight(.bold)
-                        .font(eventviewsize_to_font(size, font_size: damus_state.settings.font_size))
-                }
-                .padding(EdgeInsets(top: 5, leading: 10, bottom: 0, trailing: 10))
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
                 
-                ForEach(artifacts.media.indices, id: \.self) { index in
-                    Divider()
-                        .frame(height: 1)
-                    switch artifacts.media[index] {
-                    case .image(let url), .video(let url):
-                        Text(abbreviateURL(url))
+                Button(action: {
+                    load_media = true
+                }) {
+                    HStack(spacing: 10) {
+                        ZStack(alignment: .topTrailing) {
+                            Image("images")
+                                .foregroundStyle(DamusColors.neutral6)
+                                .accessibilityHidden(true)
+                            
+                            if artifacts.media.count > 1 {
+                                Text("\(artifacts.media.count)")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule()
+                                            .fill(DamusColors.neutral6)
+                                    )
+                                    .offset(x: 6, y: -6)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                        
+                        Text("Load \(artifacts.media.count) \(pluralizedString(key: "media_count", count: artifacts.media.count))")
                             .font(eventviewsize_to_font(size, font_size: damus_state.settings.font_size))
                             .foregroundStyle(DamusColors.neutral6)
-                            .multilineTextAlignment(.leading)
-                            .padding(EdgeInsets(top: 0, leading: 10, bottom: 5, trailing: 10))
+                        
+                        Spacer()
+
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.leading, 14)
+                    .padding(.trailing, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                Rectangle()
+                    .fill(DamusColors.neutral3)
+                    .frame(width: 1)
+                    .padding(.vertical, 8)
+                
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        showLinksDropdown.toggle()
+                    }
+                }) {
+                    Image(systemName: showLinksDropdown ? "chevron.up.circle.fill" : "chevron.down.circle")
+                        .font(.system(size: 16))
+                        .foregroundStyle(DamusColors.neutral6)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainButtonStyle())
+                .accessibilityLabel(NSLocalizedString(showLinksDropdown ? "Hide media links" : "Show media links", comment: "Accessibility label for toggle button to show/hide media link list"))
+            }
+            .background(
+                 RoundedRectangle(cornerRadius: 10)
+                     .fill(DamusColors.neutral1.opacity(0.6))
+                     .overlay(
+                         RoundedRectangle(cornerRadius: 10)
+                             .stroke(DamusColors.neutral3, lineWidth: 1)
+                     )
+                     .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+             )
+             
+            if showLinksDropdown {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(artifacts.media.enumerated()), id: \.offset) { index, mediaItem in
+                        if index > 0 {
+                            Divider()
+                                .background(DamusColors.neutral3)
+                        }
+                        
+                        mediaLinkRow(for: mediaItem, at: index)
                     }
                 }
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(DamusColors.neutral1.opacity(0.4))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(DamusColors.neutral3, lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                )
+                .padding(.top, 6)
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                    removal: .opacity
+                ))
             }
-            .background(DamusColors.neutral1)
-            .frame(minWidth: nil, maxWidth: .infinity, alignment: .center)
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(DamusColors.neutral3, lineWidth: 1)
-            )
-        })
+        }
         .padding(.horizontal)
     }
     
-    func ensureMentionProfilesAreFetchingIfNeeded() {
+    @concurrent
+    func streamProfiles() async throws {
         var mentionPubkeys: Set<Pubkey> = []
-        try? NdbBlockGroup.borrowBlockGroup(event: event, using: damus_state.ndb, and: damus_state.keypair, borrow: { blockGroup in
-            let _: ()? = try? blockGroup.forEachBlock({ _, block in
+        let event = await self.event.clone()
+        try await NdbBlockGroup.borrowBlockGroup(event: event, using: damus_state.ndb, and: damus_state.keypair, borrow: { blockGroup in
+            blockGroup.forEachBlock({ _, block in
                 guard let pubkey = block.mentionPubkey(tags: event.tags) else {
                     return .loopContinue
                 }
@@ -285,45 +359,82 @@ struct NoteContentView: View {
                 return .loopContinue
             })
         })
-
-        guard !mentionPubkeys.isEmpty else { return }
-
-        var toFetch: [Pubkey] = []
-        for pubkey in mentionPubkeys {
-            if requestedMentionProfiles.contains(pubkey) {
-                continue
-            }
-            requestedMentionProfiles.insert(pubkey)
-
-            if damus_state.profiles.has_fresh_profile(id: pubkey) {
-                continue
-            }
-
-            toFetch.append(pubkey)
+        
+        if mentionPubkeys.isEmpty {
+            return
         }
 
-        guard !toFetch.isEmpty else { return }
-
-        // Kick off metadata fetches for any missing mention profiles so their names can render once loaded.
-        for pubkey in toFetch {
-            Task {
-                for await _ in await damus_state.nostrNetwork.profilesManager.streamProfile(pubkey: pubkey) {
-                    // NO-OP, we will receive the update via `notify`
-                    break
-                }
-            }
+        // Only re-render on network updates, not cached profiles.
+        // Initial render already uses cached profile data via the view hierarchy.
+        for await profile in await damus_state.nostrNetwork.profilesManager.streamProfiles(pubkeys: mentionPubkeys, yieldCached: false) {
+            await load(force_artifacts: true)
         }
     }
 
+    @ViewBuilder
+    private func mediaLinkRow(for mediaItem: MediaUrl, at index: Int) -> some View {
+        switch mediaItem {
+        case .image(let url), .video(let url):
+            Button(action: {
+                load_media = true
+            }) {
+                HStack(spacing: 10) {
+
+                    Image(systemName: "photo.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(DamusColors.neutral6)
+                        .accessibilityHidden(true)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(abbreviateURL(url))
+                            .font(.system(size: 13))
+                            .foregroundStyle(DamusColors.neutral6)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        
+                        if let domain = url.host {
+                            Text(domain)
+                                .font(.system(size: 11))
+                                .foregroundStyle(DamusColors.neutral6)
+                        }
+                    }
+                    
+                    Spacer(minLength: 8)
+                    
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            UIPasteboard.general.string = url.absoluteString
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        }) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 14))
+                                .foregroundStyle(DamusColors.neutral6)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .accessibilityLabel(NSLocalizedString("Copy media link", comment: "Accessibility label for copy media link button"))
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.clear)
+                        .contentShape(Rectangle())
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .accessibilityLabel(NSLocalizedString("Load \(abbreviateURL(url))", comment: "Accessibility label for button to load specific media item"))
+        }
+    }
+    
     func load(force_artifacts: Bool = false) {
         if case .loading = damus_state.events.get_cache_data(event.id).artifacts_model.state {
             return
         }
-
-        ensureMentionProfilesAreFetchingIfNeeded()
         
         // always reload artifacts on load
-        let plan = get_preload_plan(evcache: damus_state.events, ev: event, our_keypair: damus_state.keypair, settings: damus_state.settings)
+        let plan = get_preload_plan(ndb: damus_state.ndb, evcache: damus_state.events, ev: event, our_keypair: damus_state.keypair, settings: damus_state.settings)
         
         // TODO: make this cleaner
         Task {
@@ -375,62 +486,82 @@ struct NoteContentView: View {
         Group {
             switch self.note_artifacts {
             case .longform(let md):
-                Markdown(md.markdown)
-                    .padding([.leading, .trailing, .top])
+                // Note: Do NOT apply .fixedSize to longform content - it prevents async images from expanding
+                // Limit line length to ~600pt for optimal readability (50-75 chars per line)
+                LongformMarkdownView(
+                    markdown: md.markdown,
+                    disableAnimation: damus_state.settings.disable_animation,
+                    lineHeightMultiplier: damus_state.settings.longform_line_height,
+                    sepiaEnabled: damus_state.settings.longform_sepia_mode
+                )
             case .separated(let separated):
                 if #available(iOS 17.4, macOS 14.4, *) {
                     MainContent(artifacts: separated)
 #if !targetEnvironment(macCatalyst)
                         .translationPresentation(isPresented: $isAppleTranslationPopoverPresented, text: event.get_content(damus_state.keypair))
 #endif
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     MainContent(artifacts: separated)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .fixedSize(horizontal: false, vertical: true)
     }
-    
+
+    var normalizedHighlightTerms: [String] {
+        var output: [String] = []
+        var seen = Set<String>()
+
+        let preparedTerms = highlightTerms
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .flatMap { term -> [String] in
+                if term.hasPrefix("#") {
+                    let stripped = String(term.dropFirst())
+                    return [term, stripped]
+                }
+                return [term]
+            }
+
+        for term in preparedTerms {
+            let lower = term.lowercased()
+            if !lower.isEmpty && seen.insert(lower).inserted {
+                output.append(lower)
+            }
+        }
+
+        return output
+    }
+
+    func highlightedContent(_ content: CompatibleText) -> CompatibleText {
+        guard !normalizedHighlightTerms.isEmpty else { return content }
+
+        var attributed = content.attributed
+        highlightAttributedString(&attributed)
+        return CompatibleText(attributed: attributed)
+    }
+
+    func highlightAttributedString(_ attributed: inout AttributedString) {
+        for term in normalizedHighlightTerms {
+            var searchStart = attributed.startIndex
+
+            while let range = attributed[searchStart...].range(of: term, options: .caseInsensitive) {
+                attributed[range].backgroundColor = DamusColors.highlight
+                searchStart = range.upperBound
+            }
+        }
+    }
+
     var body: some View {
         ArtifactContent
-            .onReceive(handle_notify(.profile_updated)) { profile in
-                try? NdbBlockGroup.borrowBlockGroup(event: event, using: damus_state.ndb, and: damus_state.keypair, borrow: { blockGroup in
-                    let _: Int? = blockGroup.forEachBlock { index, block in
-                        switch block {
-                        case .mention(let m):
-                            guard let typ = m.bech32_type else {
-                                return .loopContinue
-                            }
-                            switch typ {
-                            case .nprofile:
-                                if m.bech32.nprofile.matches_pubkey(pk: profile.pubkey) {
-                                    load(force_artifacts: true)
-                                }
-                            case .npub:
-                                if m.bech32.npub.matches_pubkey(pk: profile.pubkey) {
-                                    load(force_artifacts: true)
-                                }
-                            case .nevent: return .loopContinue
-                            case .nrelay: return .loopContinue
-                            case .nsec: return .loopContinue
-                            case .note: return .loopContinue
-                            case .naddr: return .loopContinue
-                            }
-                        case .text: return .loopContinue
-                        case .hashtag: return .loopContinue
-                        case .url: return .loopContinue
-                        case .invoice: return .loopContinue
-                        case .mention_index(_): return .loopContinue
-                        }
-                        return .loopContinue
-                    }
-                })
+            .task {
+                try? await streamProfiles()
             }
             .onAppear {
                 load()
             }
     }
-    
 }
 
 class NoteArtifactsParts {

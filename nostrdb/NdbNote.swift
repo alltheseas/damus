@@ -478,8 +478,8 @@ extension NdbNote {
         return ThreadReply(tags: self.tags)?.reply.note_id
     }
 
-    func block_offsets<T>(ndb: Ndb, borrow lendingFunction: (_: borrowing NdbBlockGroup.BlocksMetadata?) throws -> T) rethrows -> T {
-        guard let key = ndb.lookup_note_key(self.id) else { return try lendingFunction(nil) }
+    func block_offsets<T>(ndb: Ndb, borrow lendingFunction: (_: borrowing NdbBlockGroup.BlocksMetadata?) throws -> T) throws -> T {
+        guard let key = try ndb.lookup_note_key(self.id) else { return try lendingFunction(nil) }
         
         return try ndb.lookup_blocks_by_key(key, borrow: { blocks in
             return try lendingFunction(blocks)
@@ -556,8 +556,8 @@ extension NdbNote {
         return thread_reply() != nil
     }
 
+    @MainActor
     func note_language(ndb: Ndb, _ keypair: Keypair) -> String? {
-        assert(!Thread.isMainThread, "This function must not be run on the main thread.")
 
         // Rely on Apple's NLLanguageRecognizer to tell us which language it thinks the note is in
         // and filter on only the text portions of the content as URLs and hashtags confuse the language recognizer.

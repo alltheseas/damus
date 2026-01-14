@@ -39,7 +39,7 @@ enum Route: Hashable {
     case Reactions(reactions: EventsModel)
     case Zaps(target: ZapTarget)
     case Search(search: SearchModel)
-    case NDBSearch(results:  Binding<[NostrEvent]>, isLoading: Binding<Bool>, relayCount: Binding<Int>, relayAttempted: Binding<Bool>)
+    case NDBSearch(results: Binding<[NostrEvent]>, query: String, isLoading: Binding<Bool>, relayCount: Binding<Int>, relayAttempted: Binding<Bool>)
     case EULA
     case Login
     case CreateAccount
@@ -97,7 +97,7 @@ enum Route: Hashable {
         case .SearchSettings(let settings):
             SearchSettingsView(settings: settings)
         case .DeveloperSettings(let settings):
-            DeveloperSettingsView(settings: settings)
+            DeveloperSettingsView(settings: settings, damus_state: damusState)
         case .FirstAidSettings(settings: let settings):
             FirstAidSettingsView(damus_state: damusState, settings: settings)
         case .Thread(let thread):
@@ -115,10 +115,11 @@ enum Route: Hashable {
             ZapsView(state: damusState, target: target)
         case .Search(let search):
             SearchView(appstate: damusState, search: search)
-        case .NDBSearch(let results, let isLoading, let relayCount, let relayAttempted):
+        case .NDBSearch(let results, let query, let isLoading, let relayCount, let relayAttempted):
             NDBSearchView(
                 damus_state: damusState,
                 results: results,
+                searchQuery: query,
                 is_loading: isLoading,
                 relay_result_count: relayCount,
                 relay_search_attempted: relayAttempted
@@ -232,8 +233,9 @@ enum Route: Hashable {
         case .Search(let search):
             hasher.combine("search")
             hasher.combine(search.search)
-        case .NDBSearch:
-            hasher.combine("results")
+        case .NDBSearch(_, let query, _, _, _):
+            hasher.combine("ndbsearch")
+            hasher.combine(query)
         case .EULA:
             hasher.combine("eula")
         case .Login:

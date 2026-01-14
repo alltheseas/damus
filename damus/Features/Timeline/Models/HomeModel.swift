@@ -26,6 +26,7 @@ enum HomeResubFilter {
         return nil
     }
 
+    @MainActor
     func filter(contacts: Contacts, ev: NostrEvent) -> Bool {
         switch self {
         case .pubkey(let pk):
@@ -41,6 +42,7 @@ enum HomeResubFilter {
     }
 }
 
+@MainActor
 class HomeModel: ContactsDelegate, ObservableObject {
     // The maximum amount of contacts placed on a home feed subscription filter.
     // If the user has more contacts, chunking or other techniques will be used to avoid sending huge filters
@@ -109,19 +111,69 @@ class HomeModel: ContactsDelegate, ObservableObject {
     // MARK: - Loading items from DamusState
     
     /// This is called whenever DamusState gets set. This function is used to load or setup anything we need from the new DamusState
+    @MainActor
     func load_our_stuff_from_damus_state() {
         self.load_latest_contact_event_from_damus_state()
+        self.load_latest_mutelist_event_from_damus_state()
         self.load_drafts_from_damus_state()
     }
     
     /// This loads the latest contact event we have on file from NostrDB. This should be called as soon as we get the new DamusState
     /// Loading the latest contact list event into our `Contacts` instance from storage is important to avoid getting into weird states when the network is unreliable or when relays delete such information
+    @MainActor
     func load_latest_contact_event_from_damus_state() {
         damus_state.contacts.delegate = self
         guard let latest_contact_event_id_hex = damus_state.settings.latest_contact_event_id_hex else { return }
         guard let latest_contact_event_id = NoteId(hex: latest_contact_event_id_hex) else { return }
-        guard let latest_contact_event: NdbNote = damus_state.ndb.lookup_note_and_copy(latest_contact_event_id) else { return }
+        guard let latest_contact_event: NdbNote = try? damus_state.ndb.lookup_note_and_copy(latest_contact_event_id) else { return }
         process_contact_event(state: damus_state, ev: latest_contact_event)
+    }
+    
+    /// Loads the latest mute list event we have stored locally so that the mutelist manager is immediately aware of previous mutes.
+    @MainActor
+    func load_latest_mutelist_event_from_damus_state() {
+        if damus_state.mutelist_manager.event != nil {
+            return
+        }
+
+        if let latest_event = load_latest_mutelist_event_from_db() {
+            damus_state.mutelist_manager.set_mutelist(latest_event)
+            return
+        }
+
+        if let legacy_event = load_latest_legacy_mutelist_event_from_db() {
+            damus_state.mutelist_manager.set_mutelist(legacy_event)
+        }
+    }
+    
+    @MainActor
+    private func load_latest_mutelist_event_from_db(limit: Int = 5) -> NostrEvent? {
+        guard let filter = try? NdbFilter(from: NostrFilter(kinds: [.mute_list], limit: UInt32(limit), authors: [damus_state.pubkey])) else { return nil }
+        
+        guard let note_keys = try? damus_state.ndb.query(filters: [filter], maxResults: limit) else { return nil }
+        
+        var candidates: [NostrEvent] = []
+        for key in note_keys {
+            guard let note = try? damus_state.ndb.lookup_note_by_key_and_copy(key) else { continue }
+            candidates.append(note)
+        }
+        return candidates.max(by: { $0.created_at < $1.created_at })
+    }
+    
+    @MainActor
+    private func load_latest_legacy_mutelist_event_from_db(limit: Int = 20) -> NostrEvent? {
+        guard let filter = try? NdbFilter(from: NostrFilter(kinds: [.list_deprecated], limit: UInt32(limit), authors: [damus_state.pubkey])) else { return nil }
+        guard let note_keys = try? damus_state.ndb.query(filters: [filter], maxResults: limit) else { return nil }
+        
+        var candidates: [NostrEvent] = []
+        for key in note_keys {
+            guard let note = try? damus_state.ndb.lookup_note_by_key_and_copy(key) else { continue }
+            if note.referenced_params.contains(where: { $0.param.matches_str("mute") }) {
+                candidates.append(note)
+            }
+        }
+        
+        return candidates.max(by: { $0.created_at < $1.created_at })
     }
     
     func load_drafts_from_damus_state() {
@@ -289,7 +341,7 @@ class HomeModel: ContactsDelegate, ObservableObject {
             
             // since command results are not returned for ephemeral events,
             // remove the request from the postbox which is likely failing over and over
-            if damus_state.nostrNetwork.postbox.remove_relayer(relay_id: nwc.relay, event_id: resp.req_id) {
+            if await damus_state.nostrNetwork.postbox.remove_relayer(relay_id: nwc.relay, event_id: resp.req_id) {
                 Log.debug("HomeModel: got NWC response, removed %s from the postbox", for: .nwc, resp.req_id.hex())
             } else {
                 Log.debug("HomeModel: got NWC response, %s not found in the postbox, nothing to remove", for: .nwc, resp.req_id.hex())
@@ -527,8 +579,28 @@ class HomeModel: ContactsDelegate, ObservableObject {
 
         self.notificationsHandlerTask?.cancel()
         self.notificationsHandlerTask = Task {
-            for await event in damus_state.nostrNetwork.reader.streamIndefinitely(filters: notifications_filters) {
-                await event.justUseACopy({ await process_event(ev: $0, context: .notifications) })
+            // Use advancedStream (not streamIndefinitely) so we receive EOSE signals.
+            // This lets us flush queued notifications once the local database finishes loading,
+            // fixing the race condition where onAppear fires before events arrive.
+            for await item in damus_state.nostrNetwork.reader.advancedStream(
+                filters: notifications_filters,
+                streamMode: .ndbAndNetworkParallel(optimizeNetworkFilter: true)
+            ) {
+                switch item {
+                case .event(let lender):
+                    await lender.justUseACopy({ await process_event(ev: $0, context: .notifications) })
+
+                case .ndbEose:
+                    // Local database finished loading. Flush any queued notifications
+                    // and disable queuing so subsequent events display immediately.
+                    await MainActor.run {
+                        self.notifications.flush(damus_state)
+                        self.notifications.set_should_queue(false)
+                    }
+
+                case .eose, .networkEose:
+                    break
+                }
             }
         }
         self.generalHandlerTask?.cancel()
@@ -686,7 +758,6 @@ class HomeModel: ContactsDelegate, ObservableObject {
         }
 
         damus_state.mutelist_manager.set_mutelist(ev)
-
         migrate_old_muted_threads_to_new_mutelist(keypair: damus_state.keypair, damus_state: damus_state)
     }
 
@@ -709,7 +780,6 @@ class HomeModel: ContactsDelegate, ObservableObject {
         }
 
         damus_state.mutelist_manager.set_mutelist(ev)
-
         migrate_old_muted_threads_to_new_mutelist(keypair: damus_state.keypair, damus_state: damus_state)
     }
 
@@ -780,21 +850,27 @@ class HomeModel: ContactsDelegate, ObservableObject {
             handle_quote_repost_event(ev, target: quoted_event.note_id)
         }
 
-        // don't add duplicate reposts to home
-        if ev.known_kind == .boost, let target = ev.get_inner_event()?.id {
-            if already_reposted.contains(target) {
-                Log.info("Skipping duplicate repost for event %s", for: .timeline, target.hex())
-                return
-            } else {
-                already_reposted.insert(target)
-            }
-        }
-
         switch context {
         case .home:
+            // Deduplicate reposts in home feed only (issue #859).
+            //
+            // IMPORTANT: This dedup logic must remain inside the .home case.
+            // Moving it outside the switch would break notification delivery
+            // for reposts (issue #3165). Notifications should always show
+            // reposts of YOUR posts, even if the same note was already
+            // reposted by someone else in your home feed.
+            if ev.known_kind == .boost, let target = ev.get_inner_event()?.id {
+                guard !already_reposted.contains(target) else {
+                    Log.info("Skipping duplicate repost for event %s", for: .timeline, target.hex())
+                    return
+                }
+                already_reposted.insert(target)
+            }
             Task { await insert_home_event(ev) }
+
         case .notifications:
             handle_notification(ev: ev)
+
         case .other:
             break
         }
@@ -856,6 +932,7 @@ func update_signal_from_pool(signal: SignalModel, pool: RelayPool) async {
     }
 }
 
+@MainActor
 func add_contact_if_friend(contacts: Contacts, ev: NostrEvent) {
     if !contacts.is_friend(ev.pubkey) {
         return
@@ -864,6 +941,7 @@ func add_contact_if_friend(contacts: Contacts, ev: NostrEvent) {
     contacts.add_friend_contact(ev)
 }
 
+@MainActor
 func load_our_contacts(state: DamusState, m_old_ev: NostrEvent?, ev: NostrEvent) {
     let contacts = state.contacts
     let new_refs = Set<FollowRef>(ev.referenced_follows)
@@ -974,6 +1052,7 @@ func robohash(_ pk: Pubkey) -> String {
     return "https://robohash.org/" + pk.hex()
 }
 
+@MainActor
 func load_our_stuff(state: DamusState, ev: NostrEvent) {
     guard ev.pubkey == state.pubkey else {
         return
@@ -992,6 +1071,7 @@ func load_our_stuff(state: DamusState, ev: NostrEvent) {
     load_our_contacts(state: state, m_old_ev: m_old_ev, ev: ev)
 }
 
+@MainActor
 func process_contact_event(state: DamusState, ev: NostrEvent) {
     load_our_stuff(state: state, ev: ev)
     add_contact_if_friend(contacts: state.contacts, ev: ev)

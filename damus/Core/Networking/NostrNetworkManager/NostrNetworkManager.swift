@@ -59,17 +59,12 @@ class NostrNetworkManager {
         await self.pool.disconnect()
     }
     
-    func handleAppBackgroundRequest(beforeClosingNdb operationBeforeClosingNdb: (() async -> Void)? = nil) async {
-        // Mark NDB as closed without actually closing it, to avoid new tasks from using NostrDB
-        self.delegate.ndb.markClosed()
+    func handleAppBackgroundRequest() async {
         await self.reader.cancelAllTasks()
         await self.pool.cleanQueuedRequestForSessionEnd()
-        await operationBeforeClosingNdb?()
-        self.delegate.ndb.close()
     }
     
     func handleAppForegroundRequest() async {
-        self.delegate.ndb.reopen()
         // Pinging the network will automatically reconnect any dead websocket connections
         await self.ping()
     }
@@ -196,6 +191,7 @@ extension NostrNetworkManager {
         /// The latest contact list `NostrEvent`
         ///
         /// Note: Read-only access, because `NostrNetworkManager` does not manage contact lists.
+        @MainActor
         var latestContactListEvent: NostrEvent? { get }
         
         /// Default bootstrap relays to start with when a user relay list is not present

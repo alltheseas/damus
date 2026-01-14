@@ -73,6 +73,7 @@ struct InnerSearchResults: View {
     func TextSearch(_ txt: String) -> some View {
         return NavigationLink(value: Route.NDBSearch(
             results: $results,
+            query: txt,
             isLoading: $is_loading,
             relayCount: $relay_result_count,
             relayAttempted: $relay_search_attempted
@@ -151,15 +152,16 @@ struct SearchResultsView: View {
     @State private var relay_search_attempted: Bool = false
     let debouncer: Debouncer = Debouncer(interval: 0.25)
 
+    /// Performs local nostrdb text search.
     private func local_ndb_search(_ query: String, limit: Int) -> [NostrEvent] {
-        let note_keys = damus_state.ndb.text_search(query: query, limit: limit, order: .newest_first)
+        let note_keys = (try? damus_state.ndb.text_search(query: query, limit: limit, order: .newest_first)) ?? []
         guard !note_keys.isEmpty else { return [] }
 
         var found = [NostrEvent]()
         var seen = Set<NoteKey>()
 
         for note_key in note_keys {
-            damus_state.ndb.lookup_note_by_key(note_key, borrow: { maybeUnownedNote in
+            try? damus_state.ndb.lookup_note_by_key(note_key, borrow: { maybeUnownedNote in
                 switch maybeUnownedNote {
                 case .none:
                     return
@@ -175,6 +177,7 @@ struct SearchResultsView: View {
     }
 
     /// NIP-50 relay search to augment local nostrdb results.
+    /// Only called when user has enabled relay search in settings.
     private func nip50_relay_search(_ query: String, limit: Int) async -> ([NostrEvent], Bool) {
         let descriptors = damus_state.nostrNetwork.ourRelayDescriptors
         let nip50Relays = descriptors.compactMap { desc -> RelayURL? in
@@ -183,7 +186,7 @@ struct SearchResultsView: View {
             }
             return nips.contains(50) ? desc.url : nil
         }
-        // Prefer relays that explicitly advertise NIP-50; if none do, fall back to all relays so we still attempt.
+        // Prefer relays that explicitly advertise NIP-50; if none do, fall back to all relays.
         let targetRelays = nip50Relays.isEmpty ? descriptors.map { $0.url } : nip50Relays
 
         guard !targetRelays.isEmpty else { return ([], true) }
@@ -217,16 +220,33 @@ struct SearchResultsView: View {
 
         let localLimit = 128
         let relayLimit = 100
+        let nip50Enabled = damus_state.settings.enable_nip50_relay_search
+
+        Log.info("NIP-50 relay search enabled: %d", for: .search, nip50Enabled ? 1 : 0)
 
         await MainActor.run {
             is_search_loading = true
         }
 
-        async let local = local_ndb_search(trimmed, limit: localLimit)
-        async let remote = nip50_relay_search(trimmed, limit: relayLimit)
+        // Perform local search
+        let localEvents = local_ndb_search(trimmed, limit: localLimit)
+        Log.info("Local search found %d results", for: .search, localEvents.count)
 
-        let (remoteEvents, remoteAttempted) = await remote
-        let combined = await [local, remoteEvents].flatMap { $0 }
+        // Only perform relay search if user has opted in
+        var remoteEvents: [NostrEvent] = []
+        var remoteAttempted = false
+
+        if nip50Enabled {
+            Log.info("Performing NIP-50 relay search for: %@", for: .search, trimmed)
+            let (events, attempted) = await nip50_relay_search(trimmed, limit: relayLimit)
+            remoteEvents = events
+            remoteAttempted = attempted
+            Log.info("NIP-50 relay search returned %d results", for: .search, remoteEvents.count)
+        } else {
+            Log.info("NIP-50 relay search SKIPPED (disabled in settings)", for: .search)
+        }
+
+        let combined = localEvents + remoteEvents
         let remoteCount = remoteEvents.count
 
         guard !combined.isEmpty else {
@@ -239,6 +259,7 @@ struct SearchResultsView: View {
             return
         }
 
+        // Deduplicate by note ID
         var seen = Set<NoteId>()
         var deduped: [NostrEvent] = []
 
@@ -322,7 +343,7 @@ struct SearchResultsView_Previews: PreviewProvider {
 }
  */
 
-
+@MainActor
 func search_for_string(profiles: Profiles, contacts: Contacts, search new: String) -> Search? {
     guard new.count != 0 else {
         return nil
@@ -383,10 +404,11 @@ func make_hashtagable(_ str: String) -> String {
     return String(new.filter{$0 != " "})
 }
 
+@MainActor
 func search_profiles(profiles: Profiles, contacts: Contacts, search: String) -> [Pubkey] {
     // Search by hex pubkey.
     if let pubkey = hex_decode_pubkey(search),
-       profiles.lookup_key_by_pubkey(pubkey) != nil
+       (try? profiles.lookup_key_by_pubkey(pubkey)) != nil
     {
         return [pubkey]
     }
@@ -395,12 +417,12 @@ func search_profiles(profiles: Profiles, contacts: Contacts, search: String) -> 
     if search.starts(with: "npub"),
        let bech32_key = decode_bech32_key(search),
        case Bech32Key.pub(let pk) = bech32_key,
-       profiles.lookup_key_by_pubkey(pk) != nil
+       (try? profiles.lookup_key_by_pubkey(pk)) != nil
     {
         return [pk]
     }
 
-    return profiles.search(search, limit: 128).sorted { a, b in
+    return (try? profiles.search(search, limit: 128).sorted { a, b in
         let aFriendTypePriority = get_friend_type(contacts: contacts, pubkey: a)?.priority ?? 0
         let bFriendTypePriority = get_friend_type(contacts: contacts, pubkey: b)?.priority ?? 0
 
@@ -410,5 +432,5 @@ func search_profiles(profiles: Profiles, contacts: Contacts, search: String) -> 
         } else {
             return false
         }
-    }
+    }) ?? []
 }

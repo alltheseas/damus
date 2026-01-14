@@ -10,10 +10,44 @@ import SwiftUI
 struct NDBSearchView: View {
     let damus_state: DamusState
     @Binding var results: [NostrEvent]
+    let searchQuery: String
     @Binding var is_loading: Bool
     @Binding var relay_result_count: Int
     @Binding var relay_search_attempted: Bool
 
+    /// Extracts search terms for highlighting in results.
+    var highlightTerms: [String] {
+        let trimmed = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        let parts = trimmed.split(whereSeparator: { $0.isWhitespace })
+        var terms: [String] = []
+
+        for part in parts {
+            let term = String(part)
+            let strippedHashtag = term.hasPrefix("#") ? String(term.dropFirst()) : nil
+
+            if let stripped = strippedHashtag, !stripped.isEmpty {
+                terms.append(stripped)
+            }
+
+            if !term.isEmpty {
+                terms.append(term)
+            }
+        }
+
+        var deduped: [String] = []
+        var seen = Set<String>()
+        for term in terms.map({ $0.lowercased() }) {
+            if seen.insert(term).inserted {
+                deduped.append(term)
+            }
+        }
+
+        return deduped
+    }
+
+    /// Badge showing relay search status (NIP-50).
     var relayBadge: some View {
         Group {
             if relay_result_count > 0 {
@@ -64,9 +98,16 @@ struct NDBSearchView: View {
                 .padding()
                 .foregroundColor(.secondary)
 
+                if !highlightTerms.isEmpty {
+                    Text("Search: \(searchQuery)")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom, 4)
+                }
+
                 LazyVStack {
                     ForEach(results, id: \.self) { note in
-                        EventView(damus: damus_state, event: note, options: [.truncate_content])
+                        EventView(damus: damus_state, event: note, options: [.truncate_content], highlightTerms: highlightTerms)
                             .onTapGesture {
                                 let event = note.get_inner_event(cache: damus_state.events) ?? note
                                 let thread = ThreadModel(event: event, damus_state: damus_state)

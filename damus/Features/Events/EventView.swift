@@ -21,12 +21,14 @@ struct EventView: View {
     let options: EventViewOptions
     let damus: DamusState
     let pubkey: Pubkey
+    let highlightTerms: [String]
 
-    init(damus: DamusState, event: NostrEvent, pubkey: Pubkey? = nil, options: EventViewOptions = []) {
+    init(damus: DamusState, event: NostrEvent, pubkey: Pubkey? = nil, options: EventViewOptions = [], highlightTerms: [String] = []) {
         self.event = event
         self.options = options
         self.damus = damus
         self.pubkey = pubkey ?? event.pubkey
+        self.highlightTerms = highlightTerms
     }
 
     var body: some View {
@@ -48,7 +50,7 @@ struct EventView: View {
             } else if event.known_kind == .highlight {
                 HighlightView(state: damus, event: event, options: options)
             } else {
-                TextEvent(damus: damus, event: event, pubkey: pubkey, options: options)
+                TextEvent(damus: damus, event: event, pubkey: pubkey, options: options, highlightTerms: highlightTerms)
                     //.padding([.top], 6)
             }
         }
@@ -56,6 +58,7 @@ struct EventView: View {
 }
 
 // blame the porn bots for this code
+@MainActor
 func should_blur_images(settings: UserSettingsStore, contacts: Contacts, ev: NostrEvent, our_pubkey: Pubkey, booster_pubkey: Pubkey? = nil) -> Bool {
     if settings.undistractMode {
         return true
@@ -78,6 +81,7 @@ func should_blur_images(settings: UserSettingsStore, contacts: Contacts, ev: Nos
 }
 
 // blame the porn bots for this code too
+@MainActor
 func should_blur_images(damus_state: DamusState, ev: NostrEvent) -> Bool {
     return should_blur_images(
         settings: damus_state.settings,
@@ -158,4 +162,3 @@ struct EventView_Previews: PreviewProvider {
         .padding()
     }
 }
-

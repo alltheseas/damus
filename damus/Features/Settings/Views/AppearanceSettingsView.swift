@@ -26,6 +26,35 @@ struct ResizedEventPreview: View {
     }
 }
 
+/// Preview component showing sample text with the current line height setting applied
+struct LineHeightPreview: View {
+    let lineHeight: Double
+    let sepiaEnabled: Bool
+    @Environment(\.colorScheme) var colorScheme
+
+    private let sampleText = NSLocalizedString(
+        "The quick brown fox jumps over the lazy dog. This preview shows how your line spacing will appear in longform articles.",
+        comment: "Sample text for line height preview in settings"
+    )
+
+    var body: some View {
+        let font = Font.body
+        // Use Dynamic Type: get actual body font size from system preferences
+        let baseFontSize = UIFont.preferredFont(forTextStyle: .body).pointSize
+        let spacing = baseFontSize * (lineHeight - 1.0)
+
+        Text(sampleText)
+            .font(font)
+            .lineSpacing(spacing)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(sepiaEnabled ? DamusColors.sepiaBackground(for: colorScheme) : Color(UIColor.secondarySystemBackground))
+            .foregroundStyle(sepiaEnabled ? DamusColors.sepiaText(for: colorScheme) : Color.primary)
+            .cornerRadius(8)
+            .padding(.top, 8)
+    }
+}
+
 struct AppearanceSettingsView: View {
     let damus_state: DamusState
     @ObservedObject var settings: UserSettingsStore
@@ -35,6 +64,14 @@ struct AppearanceSettingsView: View {
     
     @State var showing_enable_animation_alert: Bool = false
     @State var enable_animation_toggle_is_user_initiated: Bool = true
+
+    var max_hashtags_binding: Binding<Double> {
+        Binding<Double>(get: {
+            return Double(settings.max_hashtags)
+        }, set: {
+            settings.max_hashtags = Int($0)
+        })
+    }
 
     var FontSize: some View {
         VStack(alignment: .leading) {
@@ -51,6 +88,20 @@ struct AppearanceSettingsView: View {
         Form {
             Section(NSLocalizedString("Font Size", comment: "Section label for font size settings.")) {
                 FontSize
+            }
+
+            // MARK: - Reading
+            Section(header: Text("Reading", comment: "Section header for reading appearance settings")) {
+                Toggle(NSLocalizedString("Sepia mode for longform articles", comment: "Setting to enable sepia reading mode for longform articles"), isOn: $settings.longform_sepia_mode)
+                    .toggleStyle(.switch)
+
+                VStack(alignment: .leading) {
+                    Text(String(format: NSLocalizedString("Line height: %.1fx", comment: "Label showing current line height multiplier setting"), settings.longform_line_height))
+                    Slider(value: $settings.longform_line_height, in: 1.2...1.8, step: 0.1)
+
+                    // Preview of line height
+                    LineHeightPreview(lineHeight: settings.longform_line_height, sepiaEnabled: settings.longform_sepia_mode)
+                }
             }
 
             // MARK: - Text Truncation
@@ -104,6 +155,14 @@ struct AppearanceSettingsView: View {
                     .toggleStyle(.switch)
                 Toggle(NSLocalizedString("Hide notes with #nsfw tags", comment: "Setting to hide notes with the #nsfw (not safe for work) tags"), isOn: $settings.hide_nsfw_tagged_content)
                     .toggleStyle(.switch)
+                Toggle(NSLocalizedString("Hide posts with too many hashtags", comment: "Setting to hide notes that contain too many hashtags (spam)"), isOn: $settings.hide_hashtag_spam)
+                    .toggleStyle(.switch)
+                if settings.hide_hashtag_spam {
+                    VStack(alignment: .leading) {
+                        Text(String(format: NSLocalizedString("Maximum hashtags: %d", comment: "Label showing the maximum number of hashtags allowed before a post is hidden"), settings.max_hashtags))
+                        Slider(value: max_hashtags_binding, in: 1...20, step: 1)
+                    }
+                }
             }
             
             // MARK: - Profiles

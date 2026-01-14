@@ -75,8 +75,7 @@ struct ProfilePicView: View {
     let privacy_sensitive: Bool
 
     @State var picture: String?
-    @StateObject private var profileObserver: ProfileObserver
-    @EnvironmentObject var damusState: DamusState
+    let damusState: DamusState
     
     init(pubkey: Pubkey, size: CGFloat, highlight: Highlight, profiles: Profiles, disable_animation: Bool, picture: String? = nil, show_zappability: Bool? = nil, privacy_sensitive: Bool = false, damusState: DamusState) {
         self.pubkey = pubkey
@@ -87,7 +86,7 @@ struct ProfilePicView: View {
         self.disable_animation = disable_animation
         self.zappability_indicator = show_zappability ?? false
         self.privacy_sensitive = privacy_sensitive
-        self._profileObserver = StateObject.init(wrappedValue: ProfileObserver(pubkey: pubkey, damusState: damusState))
+        self.damusState = damusState
     }
 
     var privacy_sensitive_pubkey: Pubkey {
@@ -99,7 +98,7 @@ struct ProfilePicView: View {
     }
 
     func get_lnurl() -> String? {
-        return profiles.lookup_with_timestamp(pubkey, borrow: { pr in
+        return try? profiles.lookup_with_timestamp(pubkey, borrow: { pr in
             switch pr {
             case .some(let pr): return pr.lnurl
             case .none: return nil
@@ -110,23 +109,6 @@ struct ProfilePicView: View {
     var body: some View {
         ZStack (alignment: Alignment(horizontal: .trailing, vertical: .bottom)) {
             InnerProfilePicView(url: get_profile_url(picture: picture, pubkey: privacy_sensitive_pubkey, profiles: profiles), fallbackUrl: URL(string: robohash(privacy_sensitive_pubkey)), size: size, highlight: highlight, disable_animation: disable_animation)
-                .onReceive(handle_notify(.profile_updated)) { updated in
-                    guard updated.pubkey == self.pubkey else {
-                        return
-                    }
-                    
-                    switch updated {
-                        case .manual(_, let profile):
-                            if let pic = profile.picture {
-                                self.picture = pic
-                            }
-                        case .remote(pubkey: let pk):
-                            let profile = profiles.lookup(id: pk)
-                            if let pic = profile?.picture {
-                                self.picture = pic
-                            }
-                    }
-                }
             
             if self.zappability_indicator, let lnurl = self.get_lnurl(), lnurl != "" {
                 Image("zap.fill")
@@ -141,17 +123,25 @@ struct ProfilePicView: View {
                     .clipShape(Circle())
             }
         }
+        .task {
+            for await profile in await damusState.nostrNetwork.profilesManager.streamProfile(pubkey: pubkey) {
+                if let pic = profile.picture {
+                    self.picture = pic
+                }
+            }
+        }
     }
 }
 
 func get_profile_url(picture: String?, pubkey: Pubkey, profiles: Profiles) -> URL {
-    let pic = picture ?? profiles.lookup(id: pubkey)?.picture ?? robohash(pubkey)
+    let pic = picture ?? (try? profiles.lookup(id: pubkey)?.picture) ?? robohash(pubkey)
     if let url = URL(string: pic) {
         return url
     }
     return URL(string: robohash(pubkey))!
 }
 
+@MainActor
 func make_preview_profiles(_ pubkey: Pubkey) -> Profiles {
     let profiles = Profiles(ndb: test_damus_state.ndb)
     //let picture = "http://cdn.jb55.com/img/red-me.jpg"

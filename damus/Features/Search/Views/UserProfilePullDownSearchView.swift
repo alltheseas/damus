@@ -50,12 +50,12 @@ struct UserProfilePullDownSearchView: View {
         }
 
         let limit = 64
-        let note_keys = state.ndb.text_search_by_author(
+        let note_keys = (try? state.ndb.text_search_by_author(
             query: query,
             author: author,
             limit: limit,
             order: .newest_first
-        )
+        )) ?? []
 
         // No results found
         guard !note_keys.isEmpty else {
@@ -73,7 +73,7 @@ struct UserProfilePullDownSearchView: View {
             // Skip duplicates
             guard !seen_keys.contains(note_key) else { continue }
 
-            state.ndb.lookup_note_by_key(note_key) { maybe_note in
+            try? state.ndb.lookup_note_by_key(note_key) { maybe_note in
                 switch maybe_note {
                 case .none:
                     return
@@ -166,7 +166,7 @@ struct UserProfilePullDownSearchView: View {
 
     /// Localized placeholder text showing whose notes are being searched.
     private var searchPlaceholder: String {
-        let profile = state.ndb.lookup_profile_and_copy(author)
+        let profile = try? state.ndb.lookup_profile_and_copy(author)
         let name = Profile.displayName(profile: profile, pubkey: author).username
         return String(
             format: NSLocalizedString("Search @%@'s notes", comment: "Placeholder for searching a specific user's notes. The variable is the username."),

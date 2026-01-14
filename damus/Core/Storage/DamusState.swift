@@ -39,6 +39,7 @@ class DamusState: HeadlessDamusState, ObservableObject {
     let emoji_provider: EmojiProvider
     let favicon_cache: FaviconCache
     private(set) var nostrNetwork: NostrNetworkManager
+    var snapshotManager: DatabaseSnapshotManager
 
     init(keypair: Keypair, likes: EventCounter, boosts: EventCounter, contacts: Contacts, contactCards: ContactCard, mutelist_manager: MutelistManager, profiles: Profiles, dms: DirectMessagesModel, previews: PreviewCache, zaps: Zaps, lnurls: LNUrls, settings: UserSettingsStore, relay_filters: RelayFilters, relay_model_cache: RelayModelCache, drafts: Drafts, events: EventCache, bookmarks: BookmarksManager, replies: ReplyCounter, wallet: WalletModel, nav: NavigationCoordinator, music: MusicController?, video: DamusVideoCoordinator, ndb: Ndb, purple: DamusPurple? = nil, quote_reposts: EventCounter, emoji_provider: EmojiProvider, favicon_cache: FaviconCache, addNdbToRelayPool: Bool = true) {
         self.keypair = keypair
@@ -77,12 +78,13 @@ class DamusState: HeadlessDamusState, ObservableObject {
         let nostrNetwork = NostrNetworkManager(delegate: networkManagerDelegate, addNdbToRelayPool: addNdbToRelayPool)
         self.nostrNetwork = nostrNetwork
         self.wallet.nostrNetwork = nostrNetwork
+        self.snapshotManager = .init(ndb: ndb)
     }
     
     @MainActor
-    convenience init?(keypair: Keypair) {
+    convenience init?(keypair: Keypair, owns_db_file: Bool) {
         // nostrdb
-        var mndb = Ndb()
+        var mndb = Ndb(owns_db_file: owns_db_file)
         if mndb == nil {
             // try recovery
             print("DB ISSUE! RECOVERING")
@@ -175,6 +177,7 @@ class DamusState: HeadlessDamusState, ObservableObject {
         }
     }
 
+    @MainActor
     static var empty: DamusState {
         let empty_pub: Pubkey = .empty
         let empty_sec: Privkey = .empty
@@ -224,6 +227,7 @@ fileprivate extension DamusState {
             set { self.settings.latestRelayListEventIdHex = newValue }
         }
         
+        @MainActor
         var latestContactListEvent: NostrEvent? { self.contacts.event }
         var bootstrapRelays: [RelayURL] { get_default_bootstrap_relays() }
         var developerMode: Bool { self.settings.developer_mode }

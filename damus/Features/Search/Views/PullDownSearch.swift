@@ -19,7 +19,7 @@ struct PullDownSearchView: View {
     
     func do_search(query: String) {
         let limit = 128
-        let note_keys = state.ndb.text_search(query: query, limit: limit, order: .newest_first)
+        let note_keys = (try? state.ndb.text_search(query: query, limit: limit, order: .newest_first)) ?? []
         var res = [NostrEvent]()
         // TODO: fix duplicate results from search
         var keyset = Set<NoteKey>()
@@ -32,7 +32,7 @@ struct PullDownSearchView: View {
 
         do {
             for note_key in note_keys {
-                state.ndb.lookup_note_by_key(note_key, borrow: { maybeUnownedNote in
+                try? state.ndb.lookup_note_by_key(note_key, borrow: { maybeUnownedNote in
                     switch maybeUnownedNote {
                     case .none: return  // Skip this
                     case .some(let unownedNote):
@@ -46,10 +46,11 @@ struct PullDownSearchView: View {
             }
         }
 
-        let res_ = res
+        // Text search can return keys in a mixed order; enforce newest-first here
+        let sorted = res.sorted { $0.created_at > $1.created_at }
 
-        Task { @MainActor [res_] in
-            results = res_
+        Task { @MainActor [sorted] in
+            results = sorted
         }
     }
 

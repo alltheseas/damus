@@ -397,7 +397,7 @@ struct ContentView: View {
                 guard let ds = self.damus_state,
                       let lud16 = nwc.lud16,
                       let keypair = ds.keypair.to_full(),
-                      let profile = ds.profiles.lookup(id: ds.pubkey),
+                      let profile = try? ds.profiles.lookup(id: ds.pubkey),
                       lud16 != profile.lud16 else {
                     return
                 }
@@ -493,7 +493,6 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { obj in
             print("txn: 📙 DAMUS ACTIVE NOTIFY")
             Task {
-                await damusClosingTask?.value  // Wait for the closing task to finish before reopening things, to avoid race conditions
                 if damus_state.ndb.reopen() {
                     print("txn: NOSTRDB REOPENED")
                 } else {
@@ -527,17 +526,19 @@ struct ContentView: View {
             case .background:
                 print("txn: 📙 DAMUS BACKGROUNDED")
                 let bgTask = this_app.beginBackgroundTask(withName: "Closing things down gracefully", expirationHandler: { [weak damus_state] in
-                    Log.error("App background signal handling: RUNNING OUT OF TIME! JUST CLOSE NDB DIRECTLY!", for: .app_lifecycle)
-                    // Background time about to expire, so close ndb directly.
-                    // This may still cause a memory error crash if subscription tasks have not been properly closed yet, but that is less likely than a 0xdead10cc crash if we don't do anything here.
-                    damus_state?.ndb.close()
                 })
                 
                 damusClosingTask = Task { @MainActor in
                     Log.debug("App background signal handling: App being backgrounded", for: .app_lifecycle)
                     let startTime = CFAbsoluteTimeGetCurrent()
+                    
+                    // Stop periodic snapshots
+                    await damus_state.snapshotManager.stopPeriodicSnapshots()
+                    
                     await damus_state.nostrNetwork.handleAppBackgroundRequest()  // Close ndb streaming tasks before closing ndb to avoid memory errors
-                    Log.debug("App background signal handling: Nostr network and Ndb closed after %.2f seconds", for: .app_lifecycle, CFAbsoluteTimeGetCurrent() - startTime)
+                    
+                    Log.debug("App background signal handling: Nostr network manager closed after %.2f seconds", for: .app_lifecycle, CFAbsoluteTimeGetCurrent() - startTime)
+                    
                     this_app.endBackgroundTask(bgTask)
                 }
                 break
@@ -550,6 +551,9 @@ struct ContentView: View {
                     await damusClosingTask?.value  // Wait for the closing task to finish before reopening things, to avoid race conditions
                     damusClosingTask = nil
                     await damus_state.nostrNetwork.handleAppForegroundRequest()
+                    
+                    // Restart periodic snapshots when returning to foreground
+                    await damus_state.snapshotManager.startPeriodicSnapshots()
                 }
             @unknown default:
                 break
@@ -560,7 +564,7 @@ struct ContentView: View {
                 home.filter_events()
                 
                 guard let ds = damus_state,
-                      let profile = ds.profiles.lookup(id: ds.pubkey),
+                      let profile = try? ds.profiles.lookup(id: ds.pubkey),
                       let keypair = ds.keypair.to_full()
                 else {
                     return
@@ -578,7 +582,7 @@ struct ContentView: View {
             }
         }, message: {
             if case let .user(pubkey, _) = self.muting {
-                let profile = damus_state!.profiles.lookup(id: pubkey)
+                let profile = try? damus_state!.profiles.lookup(id: pubkey)
                 let name = Profile.displayName(profile: profile, pubkey: pubkey).username.truncate(maxLength: 50)
                 Text("\(name) has been muted", comment: "Alert message that informs a user was muted.")
             } else {
@@ -622,6 +626,10 @@ struct ContentView: View {
                 }
 
                 if ds.mutelist_manager.event == nil {
+                    home.load_latest_mutelist_event_from_damus_state()
+                }
+
+                if ds.mutelist_manager.event == nil {
                     confirm_overwrite_mutelist = true
                 } else {
                     guard let keypair = ds.keypair.to_full(),
@@ -640,7 +648,7 @@ struct ContentView: View {
             }
         }, message: {
             if case let .user(pubkey, _) = muting {
-                let profile = damus_state?.profiles.lookup(id: pubkey)
+                let profile = try? damus_state?.profiles.lookup(id: pubkey)
                 let name = Profile.displayName(profile: profile, pubkey: pubkey).username.truncate(maxLength: 50)
                 Text("Mute \(name)?", comment: "Alert message prompt to ask if a user should be muted.")
             } else {
@@ -739,6 +747,8 @@ struct ContentView: View {
         )
         
         home.damus_state = self.damus_state!
+        
+        await damus_state.snapshotManager.startPeriodicSnapshots()
         
         if let damus_state, damus_state.purple.enable_purple {
             // Assign delegate so that we can send receipts to the Purple API server as soon as we get updates from user's purchases
@@ -1005,6 +1015,7 @@ func timeline_name(_ timeline: Timeline?) -> String {
 }
 
 @discardableResult
+@MainActor
 func handle_unfollow(state: DamusState, unfollow: FollowRef) async -> Bool {
     guard let keypair = state.keypair.to_full() else {
         return false
@@ -1033,6 +1044,7 @@ func handle_unfollow(state: DamusState, unfollow: FollowRef) async -> Bool {
 }
 
 @discardableResult
+@MainActor
 func handle_follow(state: DamusState, follow: FollowRef) async -> Bool {
     guard let keypair = state.keypair.to_full() else {
         return false
@@ -1061,9 +1073,9 @@ func handle_follow(state: DamusState, follow: FollowRef) async -> Bool {
 func handle_follow_notif(state: DamusState, target: FollowTarget) async -> Bool {
     switch target {
     case .pubkey(let pk):
-        state.contacts.add_friend_pubkey(pk)
+        await state.contacts.add_friend_pubkey(pk)
     case .contact(let ev):
-        state.contacts.add_friend_contact(ev)
+        await state.contacts.add_friend_contact(ev)
     }
 
     return await handle_follow(state: state, follow: target.follow_ref)

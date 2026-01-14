@@ -138,7 +138,13 @@ class UserSettingsStore: ObservableObject {
 
     @Setting(key: "hide_nsfw_tagged_content", default_value: false)
     var hide_nsfw_tagged_content: Bool
-    
+
+    @Setting(key: "hide_hashtag_spam", default_value: true)
+    var hide_hashtag_spam: Bool
+
+    @Setting(key: "max_hashtags", default_value: 3)
+    var max_hashtags: Int
+
     @Setting(key: "reduce_bitcoin_content", default_value: false)
     var reduce_bitcoin_content: Bool
     
@@ -165,6 +171,12 @@ class UserSettingsStore: ObservableObject {
 
     @Setting(key: "font_size", default_value: 1.0)
     var font_size: Double
+
+    @Setting(key: "longform_sepia_mode", default_value: false)
+    var longform_sepia_mode: Bool
+
+    @Setting(key: "longform_line_height", default_value: 1.5)
+    var longform_line_height: Double
 
     @Setting(key: "dm_notification", default_value: true)
     var dm_notification: Bool
@@ -215,6 +227,11 @@ class UserSettingsStore: ObservableObject {
     
     @Setting(key: "multiple_events_per_pubkey", default_value: false)
     var multiple_events_per_pubkey: Bool
+
+    /// When enabled, search queries are sent to relays supporting NIP-50.
+    /// This may expose search terms to relay operators.
+    @Setting(key: "enable_nip50_relay_search", default_value: false)
+    var enable_nip50_relay_search: Bool
 
     @Setting(key: "onlyzaps_mode", default_value: false)
     var onlyzaps_mode: Bool
