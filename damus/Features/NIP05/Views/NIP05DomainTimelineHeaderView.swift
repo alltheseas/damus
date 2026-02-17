@@ -103,7 +103,7 @@ func notesFromAuthorsString(_ authors: [Pubkey], ndb: Ndb, locale: Locale = Loca
 
     // Get display names for up to the first 3 authors
     let names: [String] = authors.prefix(3).map { pk in
-        let profile = ndb.lookup_profile(pk)?.unsafeUnownedValue?.profile
+        let profile = try? ndb.lookup_profile_and_copy(pk)
         return Profile.displayName(profile: profile, pubkey: pk).username.truncate(maxLength: 20)
     }
 

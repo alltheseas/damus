@@ -42,7 +42,7 @@ struct NIP05DomainTimelineView: View {
     let nip05_domain_favicon: FaviconURL?
 
     /// Filter settings that control display mode, time range, and content filters.
-    @StateObject private var filterSettings = NIP05FilterSettings()
+    @StateObject private var filterSettings = NIP05FilterSettings(enableGroupedMode: true)
 
     /// Controls visibility of the filter settings sheet.
     @State private var showFilterSheet: Bool = false
