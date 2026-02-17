@@ -18,27 +18,24 @@ import SwiftUI
 /// - Max notes per user threshold
 struct GroupedListView: View {
     let damus_state: DamusState
-    let events: EventHolder
+    @ObservedObject var events: EventHolder
     let filter: (NostrEvent) -> Bool
     @ObservedObject var settings: GroupedFilterSettings
     /// Called when the user taps an author row to visit their profile.
     var onProfileTapped: ((Pubkey) -> Void)? = nil
 
-    /// Groups all events by author via the extracted pure-function grouper.
-    var authorGroups: [AuthorGroup] {
-        GroupedTimelineGrouper.group(
+    // MARK: - View Body
+
+    var body: some View {
+        let groups = GroupedTimelineGrouper.group(
             events: events.all_events,
             filter: filter,
             values: settings.filterValues,
             now: Date()
         )
-    }
 
-    // MARK: - View Body
-
-    var body: some View {
         LazyVStack(spacing: 0) {
-            ForEach(authorGroups) { group in
+            ForEach(groups) { group in
                 Button {
                     onProfileTapped?(group.pubkey)
                     damus_state.nav.push(route: Route.ProfileByKey(pubkey: group.pubkey))
@@ -56,7 +53,7 @@ struct GroupedListView: View {
                     .padding(.leading, 74)
             }
 
-            if authorGroups.isEmpty {
+            if groups.isEmpty {
                 emptyStateView
             }
         }

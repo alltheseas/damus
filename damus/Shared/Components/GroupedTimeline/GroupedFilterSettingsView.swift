@@ -19,13 +19,17 @@ class GroupedFilterSettings: ObservableObject {
 
     static let maxNotesOptions: [Int?] = [nil, 3, 5, 10, 20]
 
+    /// The default value passed at init, used by `reset()` to restore per-screen defaults.
+    private let defaultGroupedMode: Bool
+
     /// - Parameter enableGroupedMode: Initial grouped mode state. NIP-05 domain views pass `true`; home timeline defaults to `false`.
     init(enableGroupedMode: Bool = false) {
+        self.defaultGroupedMode = enableGroupedMode
         self.enableGroupedMode = enableGroupedMode
     }
 
     func reset() {
-        enableGroupedMode = false
+        enableGroupedMode = defaultGroupedMode
         timeRange = .day
         includeReplies = false
         hideShortNotes = false
