@@ -1,11 +1,11 @@
 //
-//  NIP05GroupedListView.swift
+//  GroupedTimelineGrouper.swift
 //  damus
 //
 //  Created by alltheseas on 2025-12-07.
 //
 
-import SwiftUI
+import Foundation
 
 // MARK: - Author Group Model
 
@@ -31,7 +31,7 @@ struct GroupedFilterValues {
     let maxNotesPerUser: Int?
 }
 
-extension NIP05FilterSettings {
+extension GroupedFilterSettings {
     var filterValues: GroupedFilterValues {
         GroupedFilterValues(
             timeRangeSeconds: timeRange.seconds,
@@ -78,7 +78,12 @@ struct GroupedTimelineGrouper {
 
         return groupsByAuthor
             .map { AuthorGroup(pubkey: $0.key, latestEvent: $0.value.latest, postCount: $0.value.count) }
-            .sorted { $0.latestEvent.created_at > $1.latestEvent.created_at }
+            .sorted {
+                if $0.latestEvent.created_at != $1.latestEvent.created_at {
+                    return $0.latestEvent.created_at > $1.latestEvent.created_at
+                }
+                return $0.pubkey.id.lexicographicallyPrecedes($1.pubkey.id)
+            }
     }
 
     // MARK: - Internal Filtering
@@ -131,105 +136,4 @@ struct GroupedTimelineGrouper {
 
         return false
     }
-}
-
-// MARK: - Queue Manager
-
-/// Manages EventHolder queue state for grouped mode transitions.
-/// Extracted from View for testability.
-struct GroupedModeQueueManager {
-    /// Flushes queued events and disables queueing so grouped view sees all events.
-    @MainActor
-    static func flush(source: EventHolder) {
-        source.flush()
-        source.set_should_queue(false)
-    }
-}
-
-// MARK: - Grouped List View
-
-/// A list view that groups posts by author, showing one row per author.
-/// Each row displays the author's profile, their most recent post preview, and total post count.
-///
-/// Supports filtering by:
-/// - Reply exclusion
-/// - Time range (24h, 7d)
-/// - Keyword exclusion (comma-separated words)
-/// - Short note filtering (fevela-style: <10 chars, emoji-only, single word)
-/// - Max notes per user threshold
-struct NIP05GroupedListView: View {
-    let damus_state: DamusState
-    let events: EventHolder
-    let filter: (NostrEvent) -> Bool
-    @ObservedObject var settings: NIP05FilterSettings
-
-    /// Groups all events by author via the extracted pure-function grouper.
-    var authorGroups: [AuthorGroup] {
-        GroupedTimelineGrouper.group(
-            events: events.all_events,
-            filter: filter,
-            values: settings.filterValues,
-            now: Date()
-        )
-    }
-
-    // MARK: - View Body
-
-    var body: some View {
-        LazyVStack(spacing: 0) {
-            ForEach(authorGroups) { group in
-                Button {
-                    damus_state.nav.push(route: Route.ProfileByKey(pubkey: group.pubkey))
-                } label: {
-                    NIP05GroupedAuthorRow(
-                        damus_state: damus_state,
-                        pubkey: group.pubkey,
-                        latestEvent: group.latestEvent,
-                        postCount: group.postCount
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Divider()
-                    .padding(.leading, 74)
-            }
-
-            if authorGroups.isEmpty {
-                emptyStateView
-            }
-        }
-    }
-
-    private var emptyStateView: some View {
-        VStack(spacing: 8) {
-            Text("No matching posts")
-                .font(.headline)
-                .foregroundColor(.gray)
-
-            if hasActiveFilters {
-                Text("Try adjusting your filters")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(.top, 40)
-    }
-
-    private var hasActiveFilters: Bool {
-        let wordsList = GroupedTimelineGrouper.parseFilteredWords(settings.filteredWords)
-        return !wordsList.isEmpty || settings.hideShortNotes || settings.maxNotesPerUser != nil
-    }
-}
-
-// MARK: - Preview
-
-#Preview {
-    let damus_state = test_damus_state
-    let holder = EventHolder(on_queue: { _ in })
-    NIP05GroupedListView(
-        damus_state: damus_state,
-        events: holder,
-        filter: { _ in true },
-        settings: NIP05FilterSettings()
-    )
 }
