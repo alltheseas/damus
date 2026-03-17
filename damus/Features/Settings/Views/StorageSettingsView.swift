@@ -62,6 +62,7 @@ struct StorageSettingsView: View {
     @State var showing_compact_alert: Bool = false
     @State fileprivate var purge_scheduling_state: PurgeSchedulingState = .not_scheduled
     @State var showing_purge_alert: Bool = false
+    @State private var max_cache_size_gb: Int = UserDefaults.standard.integer(forKey: DamusCacheManager.max_cache_size_gb_key)
     
     /// Storage categories with cumulative ranges for angle selection (iOS 17+)
     private var categoryRanges: [(category: String, range: Range<Double>)] {
@@ -196,6 +197,30 @@ struct StorageSettingsView: View {
                     }
                 }
                 
+                // Maximum Cache Size
+                Section(footer: Text("Automatically removes old cached images and videos to stay within this limit.", comment: "Footer explaining the maximum cache size setting.")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Maximum Cache Size", comment: "Label for the maximum cache size picker.")
+                        Picker("", selection: $max_cache_size_gb) {
+                            Text("5 GB").tag(5)
+                            Text("16 GB").tag(16)
+                            Text("32 GB").tag(32)
+                            Text("No Limit", comment: "Option to disable cache size limit.").tag(0)
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .onChange(of: max_cache_size_gb) { new_value in
+                    UserDefaults.standard.set(new_value, forKey: DamusCacheManager.max_cache_size_gb_key)
+                    DispatchQueue.global(qos: .utility).async {
+                        DamusCacheManager.shared.enforce_cache_limits()
+                        DispatchQueue.main.async {
+                            loadStorageStats()
+                        }
+                    }
+                }
+
                 // Clear Cache Section
                 Section {
                     self.ClearCacheButton

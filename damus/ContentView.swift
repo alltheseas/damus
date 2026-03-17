@@ -506,6 +506,9 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { obj in
             print("txn: 📙 DAMUS ACTIVE NOTIFY")
+            DispatchQueue.global(qos: .utility).async {
+                DamusCacheManager.shared.enforce_cache_limits()
+            }
             Task {
                 if damus_state.ndb.reopen() {
                     print("txn: NOSTRDB REOPENED")

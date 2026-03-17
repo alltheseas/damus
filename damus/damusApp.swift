@@ -82,7 +82,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         registerNotificationCategories()
         ImageCacheMigrations.migrateKingfisherCacheIfNeeded()
         configureKingfisherCache()
-        
+
         return true
     }
     
@@ -118,6 +118,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let cachePath = ImageCacheMigrations.kingfisherCachePath()
         if let cache = try? ImageCache(name: "sharedCache", cacheDirectoryURL: cachePath) {
             KingfisherManager.shared.cache = cache
+        }
+
+        // Apply cache size limits and trim oversized caches on startup
+        DispatchQueue.global(qos: .utility).async {
+            DamusCacheManager.shared.enforce_cache_limits()
         }
     }
 }
