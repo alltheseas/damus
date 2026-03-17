@@ -105,6 +105,38 @@ struct VideoCache {
         }
     }
     
+    /// Deletes oldest cached videos until total size is within the given budget.
+    /// Runs synchronously on the caller's thread.
+    func enforce_size_limit(max_bytes: UInt64) {
+        let file_manager = FileManager.default
+        guard let files = try? file_manager.contentsOfDirectory(at: self.cache_url, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey], options: .skipsHiddenFiles) else {
+            return
+        }
+
+        var entries: [(url: URL, date: Date, size: UInt64)] = []
+        var total: UInt64 = 0
+
+        for file in files {
+            guard let values = try? file.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey]),
+                  let date = values.contentModificationDate,
+                  let size = values.fileSize else { continue }
+            let file_size = UInt64(size)
+            entries.append((url: file, date: date, size: file_size))
+            total += file_size
+        }
+
+        guard total > max_bytes else { return }
+
+        // Sort oldest first
+        entries.sort { $0.date < $1.date }
+
+        for entry in entries {
+            guard total > max_bytes else { break }
+            try? file_manager.removeItem(at: entry.url)
+            total -= entry.size
+        }
+    }
+
     /// Hashes the URL using SHA-256
     private func hash_url(_ url: URL) -> String {
         let data = Data(url.absoluteString.utf8)
