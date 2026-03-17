@@ -17,7 +17,11 @@ struct DamusCacheManager {
     /// Safe to call from any thread.
     func enforce_cache_limits() {
         let gb = UserDefaults.standard.integer(forKey: DamusCacheManager.max_cache_size_gb_key)
-        guard gb > 0 else { return }
+        guard gb > 0 else {
+            // No limit — clear any previously set cap
+            KingfisherManager.shared.cache.diskStorage.config.sizeLimit = 0
+            return
+        }
 
         let budget = UInt64(gb) * 1_000_000_000
 

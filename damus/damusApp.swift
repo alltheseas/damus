@@ -120,10 +120,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             KingfisherManager.shared.cache = cache
         }
 
-        let gb = UserDefaults.standard.integer(forKey: DamusCacheManager.max_cache_size_gb_key)
-        if gb > 0 {
-            let budget = UInt(gb) * 1_000_000_000
-            KingfisherManager.shared.cache.diskStorage.config.sizeLimit = budget * 2 / 3
+        // Apply cache size limits and trim oversized caches on startup
+        DispatchQueue.global(qos: .utility).async {
+            DamusCacheManager.shared.enforce_cache_limits()
         }
     }
 }
