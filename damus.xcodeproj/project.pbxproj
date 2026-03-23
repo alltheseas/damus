@@ -1907,6 +1907,7 @@
 		D7DB930C2D69486700DA1EE5 /* NIP65.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DB93092D69485A00DA1EE5 /* NIP65.swift */; };
 		D7DBD41F2B02F15E002A6197 /* NostrKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3BEFD32819DE8F00B3DE84 /* NostrKind.swift */; };
 		D7DEEF2F2A8C021E00E0C99F /* NostrEventTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DEEF2E2A8C021E00E0C99F /* NostrEventTests.swift */; };
+		AA00000100000001000000A1 /* SchemaValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000100000001000000A0 /* SchemaValidationTests.swift */; };
 		D7DF58322DFCF18D00E9AD28 /* SendPaymentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DF58312DFCF18800E9AD28 /* SendPaymentView.swift */; };
 		D7DF58332DFCF18D00E9AD28 /* SendPaymentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DF58312DFCF18800E9AD28 /* SendPaymentView.swift */; };
 		D7DF58342DFCF18D00E9AD28 /* SendPaymentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7DF58312DFCF18800E9AD28 /* SendPaymentView.swift */; };
@@ -2928,6 +2929,7 @@
 		D7DB93042D66A43B00DA1EE5 /* Undistractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Undistractor.swift; sourceTree = "<group>"; };
 		D7DB93092D69485A00DA1EE5 /* NIP65.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NIP65.swift; sourceTree = "<group>"; };
 		D7DEEF2E2A8C021E00E0C99F /* NostrEventTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NostrEventTests.swift; sourceTree = "<group>"; };
+		AA00000100000001000000A0 /* SchemaValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaValidationTests.swift; sourceTree = "<group>"; };
 		D7DF58312DFCF18800E9AD28 /* SendPaymentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendPaymentView.swift; sourceTree = "<group>"; };
 		D7E14B8D2F68B0C900BF84B7 /* Ndb+Compaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Ndb+Compaction.swift"; sourceTree = "<group>"; };
 		D7E14B922F68B22D00BF84B7 /* NdbCompactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NdbCompactionTests.swift; sourceTree = "<group>"; };
@@ -3973,6 +3975,7 @@
 				4C684A542A7E91FE005E6031 /* LargeEventTests.swift */,
 				4C684A562A7FFAE6005E6031 /* UrlTests.swift */,
 				D7DEEF2E2A8C021E00E0C99F /* NostrEventTests.swift */,
+				AA00000100000001000000A0 /* SchemaValidationTests.swift */,
 				D71DC1EB2A9129C3006E207C /* PostViewTests.swift */,
 				D72A2CFF2AD9B66B002AFF62 /* EventViewTests.swift */,
 				D7315A2B2ACDF4DA0036E30A /* DamusCacheManagerTests.swift */,
@@ -5533,6 +5536,7 @@
 				D7A343ED2AD0D77C00CED48B /* InlineSnapshotTesting */,
 				D7A343EF2AD0D77C00CED48B /* SnapshotTesting */,
 				D74723EB2F15B0C3002DA12A /* NostrSDK */,
+				AA00000100000001000000A3 /* SchemataValidator */,
 			);
 			productName = damusTests;
 			productReference = 4CE6DEF327F7A08200C66700 /* damusTests.xctest */;
@@ -5727,6 +5731,7 @@
 				3ACF94362DA9A52F00971A4E /* XCRemoteSwiftPackageReference "FaviconFinder" */,
 				D7E5B2D92EA080BE00CF47AC /* XCRemoteSwiftPackageReference "negentropy-swift" */,
 				D74723EA2F15B0C3002DA12A /* XCRemoteSwiftPackageReference "nostr-sdk-swift" */,
+				AA00000100000001000000A2 /* XCRemoteSwiftPackageReference "schemata-validator-swift" */,
 			);
 			productRefGroup = 4CE6DEE427F7A08100C66700 /* Products */;
 			projectDirPath = "";
@@ -6438,6 +6443,7 @@
 				D7EBF8BB2E59022A004EAE29 /* NostrNetworkManagerTests.swift in Sources */,
 				D77DA2CE2F1C2596000B7093 /* SubscriptionManagerNegentropyTests.swift in Sources */,
 				D7DEEF2F2A8C021E00E0C99F /* NostrEventTests.swift in Sources */,
+				AA00000100000001000000A1 /* SchemaValidationTests.swift in Sources */,
 				4C8D00D429E3C5D40036AF10 /* NIP19Tests.swift in Sources */,
 				3A30410129AB12AA008A0F29 /* EventGroupViewTests.swift in Sources */,
 				501F8C822A0224EB001AFC1D /* KeychainStorageTests.swift in Sources */,
@@ -8649,6 +8655,14 @@
 				minimumVersion = 0.1.0;
 			};
 		};
+		AA00000100000001000000A2 /* XCRemoteSwiftPackageReference "schemata-validator-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nostrability/schemata-validator-swift.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -8856,6 +8870,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D70D90962CDED61800CD0534 /* XCRemoteSwiftPackageReference "CodeScanner" */;
 			productName = CodeScanner;
+		};
+		AA00000100000001000000A3 /* SchemataValidator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA00000100000001000000A2 /* XCRemoteSwiftPackageReference "schemata-validator-swift" */;
+			productName = SchemataValidator;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
